@@ -1,1 +1,1 @@
-<polygon class="st0" points="$ax,$ay $bx,$by $cx,$cy $dx,$dy $ex,$ey $fx,$fy "/>
+<polygon class="$cssClass" points="$ax,$ay $bx,$by $cx,$cy $dx,$dy $ex,$ey $fx,$fy " />

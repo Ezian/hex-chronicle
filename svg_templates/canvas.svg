@@ -1,6 +1,58 @@
-<svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" >
-<style type="text/css">
-	.st0{fill:none;stroke:#8E8E8E;stroke-width:$stroke;stroke-miterlimit:10;}
-</style>
-$content
+<svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg">
+    <style type="text/css">
+        polygon {
+            fill: none;
+            stroke: #8E8E8E;
+            stroke-width: $stroke;
+            stroke-miterlimit: 10;
+        }
+
+        .plain {
+            fill: lightgreen;
+        }
+
+        .lwood {
+            fill: green;
+        }
+
+        .hwood {
+            fill: darkgreen;
+        }
+
+        .grass {
+            fill: chartreuse;
+        }
+
+        .mountain {
+            fill: maroon;
+        }
+
+        .hill {
+            fill: bisque;
+        }
+
+        .sea {
+            fill: blue;
+        }
+
+
+        .lake {
+            fill: lightskyblue;
+        }
+
+
+        .marsh {
+            fill: yellowgreen;
+        }
+
+
+        .desert {
+            fill: lightyellow;
+        }
+
+        .unknown {
+            fill: gray;
+        }
+    </style>
+    $content
 </svg>
