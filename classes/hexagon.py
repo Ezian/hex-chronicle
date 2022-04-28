@@ -1,6 +1,7 @@
 
 import math
 from enum import Enum, auto
+from multiprocessing.sharedctypes import Value
 from typing import List
 from string import Template
 import frontmatter
@@ -11,6 +12,9 @@ with open('svg_templates/hexagon.svg', 'r') as cfile:
 
 with open('svg_templates/number.svg', 'r') as cfile:
     number_t = Template(cfile.read())
+
+with open('svg_templates/polygon.svg', 'r') as cfile:
+    polygon_t = Template(cfile.read())
 
 
 def calc_radius2(radius):
@@ -30,8 +34,27 @@ class Point:
         self.x = x
         self.y = y
 
+# Type of terrain
+
+
+class Cardinal(Enum):
+    # the second element of tuple allow to get the id of a point in inner and outerpoint
+    N = (auto(), None)
+    NO = (auto(), 2)
+    O = (auto(), 3)
+    SO = (auto(), 4)
+    S = (auto(), None)
+    SE = (auto(), 5)
+    E = (auto(), 0)
+    NE = (auto(), 1)
+    C = (auto(), None)
+
+    def pid(self):
+        return self.value[1]
 
 # Type of terrain
+
+
 class Terrain(Enum):
     PLAINS = (auto(), 'plain')
     GRASSLAND = (auto(), 'grass')
@@ -88,10 +111,24 @@ class Hexagon:
         self.content = content
         self.grid: HexagonGrid = grid
         self.outerPoints = self.__createOuterPoints()
+        self.innerPoints = self.__createInnerPoints()
 
     def __createOuterPoints(self) -> List[Point]:
         radius = self.grid.radius
         radius2 = self.grid.radius2
+        mmratio = self.grid.mmratio
+        return [Point(x*mmratio, y*mmratio) for (x, y) in [
+            (self.x+radius, self.y),            # E
+            (self.x+radius/2, self.y-radius2),  # NE
+            (self.x-radius/2, self.y-radius2),  # NO
+            (self.x-radius, self.y),            # O
+            (self.x-radius/2, self.y+radius2),  # SO
+            (self.x+radius/2, self.y+radius2),  # SE
+        ]]
+
+    def __createInnerPoints(self) -> List[Point]:
+        radius = self.grid.radius*0.6
+        radius2 = self.grid.radius2*0.6
         mmratio = self.grid.mmratio
         return [Point(x*mmratio, y*mmratio) for (x, y) in [
             (self.x+radius, self.y),            # E
@@ -108,11 +145,11 @@ class Hexagon:
         Returns:
         string: svg code for a single hexagon
         """
-        terrainCSS = 'st0'
+        terrainCSS = ''
         if self.content:
             terrain = self.content[1].get(
                 'terrain', {}).get('type', 'unknown')
-            terrainCSS = Terrain[terrain.upper()].css()
+            terrainCSS = terrainCSS + " " + Terrain[terrain.upper()].css()
 
         return hexagon_t.substitute(
             ax=self.outerPoints[0].x,
@@ -128,14 +165,10 @@ class Hexagon:
             fx=self.outerPoints[5].x,
             fy=self.outerPoints[5].y,
             cssClass=terrainCSS
-        )
+        ) + self.drawMixedTerrainSVG()
 
     def drawNumberSVG(self):
         """Generate svg code for the number to be displayed in a hex.
-
-        Args:
-        hex (Hexagon): Hexagon to create a svg number
-
         Returns:
         string: svg code for a number coordinate
         """
@@ -145,3 +178,103 @@ class Hexagon:
         top = (self.y-radius/2)*mmratio
         fontsize = str((radius/10)*mmratio) + "mm"
         return number_t.substitute(left=left, top=top, row=self.row, col=self.col, fontsize=fontsize)
+
+    def drawMixedTerrainSVG(self):
+        """Generate svg code for a hexagon.
+
+        Returns:
+        string: svg code for a single hexagon
+        """
+        mixedTerrains = []
+        if self.content:
+            mixedTerrains = self.content[1].get(
+                'terrain', {}).get('mixed', [])
+
+        result = ''
+
+        for terrain in mixedTerrains:
+            typeCSS = terrain.get('type', 'unknown')
+            polygons: List[List[Point]] = self.computePartsPolygons(
+                terrain.get('sides', []))
+
+            for polygon in polygons:
+                pointStr = ' '.join(
+                    ["{},{}".format(point.x, point.y) for point in polygon])
+                result += polygon_t.substitute(
+                    points=pointStr,
+                    cssClass=typeCSS
+                )
+        return result
+
+    def computePartsPolygons(self, sides: List[str]):
+        # TODO optimiser en regroupant les formes afin de faire moins de polygones
+        result: List[List[Point]] = []
+
+        for side in sides:
+            c = None
+            try:
+                c = Cardinal[side.upper()]
+            except KeyError:
+                pass  # do nothing
+            if c is Cardinal.N:
+                result.append([
+                    self.pin(Cardinal.NE), self.pin(
+                        Cardinal.NO), self.pout(Cardinal.NO), self.pout(Cardinal.NE),
+                ])
+            if c is Cardinal.NE:
+                result.append([
+                    self.pin(Cardinal.E), self.pin(
+                        Cardinal.NE), self.pout(Cardinal.NE), self.pout(Cardinal.E),
+                ])
+            if c is Cardinal.SE:
+                result.append([
+                    self.pin(Cardinal.E), self.pin(
+                        Cardinal.SE), self.pout(Cardinal.SE), self.pout(Cardinal.E),
+                ])
+            if c is Cardinal.S:
+                result.append([
+                    self.pin(Cardinal.SE), self.pin(
+                        Cardinal.SO), self.pout(Cardinal.SO), self.pout(Cardinal.SE),
+                ])
+            if c is Cardinal.SO:
+                result.append([
+                    self.pin(Cardinal.O), self.pin(
+                        Cardinal.SO), self.pout(Cardinal.SO), self.pout(Cardinal.O),
+                ])
+            if c is Cardinal.NO:
+                result.append([
+                    self.pin(Cardinal.O), self.pin(
+                        Cardinal.NO), self.pout(Cardinal.NO), self.pout(Cardinal.O),
+                ])
+            if c is Cardinal.C:
+                result.append(self.innerPoints)
+
+        return result
+
+    def pin(self, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card (Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.innerPoints[card.pid()]
+
+    def pout(self, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card (Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.outerPoints[card.pid()]

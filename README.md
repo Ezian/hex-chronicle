@@ -82,7 +82,9 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 # TODOs
 
-- hex bicolor (hex we sea coast)
+- hex bicolor optimization : 
+  - Draw only one polygon for contiguous mixed sides (hex we sea coast)
+  - Draw grid on top of everything
 - Roads
 - Rivers
 - hex icon from description
