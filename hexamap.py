@@ -69,8 +69,8 @@ def parseHexFile(filename):
     if m is None:
         return error
 
-    col = int(m.group(1))
-    row = int(m.group(2))
+    col = int(m.group(2))
+    row = int(m.group(1))
 
     with open(filename) as f:
         return True, col, row, frontmatter.load(f)
