@@ -38,20 +38,20 @@ We only get metadata to draw the map. But the content maybe useful for something
 ## The Hexagon concept
 
 ```ascii
-                                                                      N
-       point NO--> o----------o <-- point NE                   NO     |     NE          
-                  / \    N   / \                                 \    |    /
-                 /   o------o   \                                 \   |   /
-                / NO/        \ NE\                                 \  |  /
-               /   /          \   \                                 \ | /          
-   point O--> <o---o  Zone C   o---o <-- point E          O --------- C --------- E
-               \   \          /   /                                 / | \ 
-                \ SO\        / SE/                                 /  |  \    
-                 \   o------o   /                                 /   |   \   
-                  \ /    S   \ /                                 /    |    \  
-       point SO--> o----------o <-- point SE                   SO     |     SE
-                                                                      S
-
+                                                                              N
+       point NO--> o----------o <-- point NE                           NO     |     NE          
+                  / \    N   / \                                         \    |    /
+                 /   o------o   \                                         \   |   /
+                / NO/        \ NE\                                         \  |  /
+               /   /          \   \                                         \ | /          
+   point O--> <o---o  Zone C   o---o <-- point E    ^             O --------- C --------- E
+               \   \          /   /                 |                       / | \ 
+                \ SO\        / SE/                  | radius2              /  |  \    
+                 \   o------o   /                   |                     /   |   \   
+                  \ /    S   \ /                    |                    /    |    \  
+       point SO--> o----------o <-- point SE        v                  SO     |     SE
+                                                                              S
+                         <-radius->                       
 
 ```
 
@@ -82,7 +82,6 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 # TODOs
 
-- Refacto : introduce "Hexagon" concept
 - hex bicolor (hex we sea coast)
 - Roads
 - Rivers
