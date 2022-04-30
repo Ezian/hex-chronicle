@@ -95,6 +95,13 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ## TODOs
 
+### Before Release
+
+- Fix draw icon => Scaling dependant of the size of the map, it works well with the current one, but it break when the map size change
+- Fix the width computing : it should be a bit larger.
+
+### Next
+
 - Grid optimization: Base polygon should be drawed as defs and duplicated
   - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
 - Hex icon from terrain
