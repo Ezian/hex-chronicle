@@ -1,14 +1,11 @@
 
+from lib2to3.pygram import python_grammar_no_print_statement
 import math
 from enum import Enum, auto
 from multiprocessing.sharedctypes import Value
 from typing import List
 from string import Template
 import frontmatter
-
-
-with open('svg_templates/hexagon.svg', 'r') as cfile:
-    hexagon_t = Template(cfile.read())
 
 with open('svg_templates/number.svg', 'r') as cfile:
     number_t = Template(cfile.read())
@@ -33,6 +30,11 @@ class Point:
     def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
+
+
+def points_to_polygon_coord(points: List[Point]):
+    return ' '.join(
+        ["{},{}".format(point.x, point.y) for point in points])
 
 # Type of terrain
 
@@ -139,72 +141,69 @@ class Hexagon:
             (self.x+radius/2, self.y+radius2),  # SE
         ]]
 
-    def drawSVG(self):
-        """Generate svg code for a hexagon.
+    def drawGrid(self):
+        """Generate svg code for a hexagon, containing the grid and the numbers
 
         Returns:
         string: svg code for a single hexagon
         """
-        terrainCSS = ''
-        if self.content:
-            terrain = self.content[1].get(
-                'terrain', {}).get('type', 'unknown')
-            terrainCSS = terrainCSS + " " + Terrain[terrain.upper()].css()
-
-        return hexagon_t.substitute(
-            ax=self.outerPoints[0].x,
-            ay=self.outerPoints[0].y,
-            bx=self.outerPoints[1].x,
-            by=self.outerPoints[1].y,
-            cx=self.outerPoints[2].x,
-            cy=self.outerPoints[2].y,
-            dx=self.outerPoints[3].x,
-            dy=self.outerPoints[3].y,
-            ex=self.outerPoints[4].x,
-            ey=self.outerPoints[4].y,
-            fx=self.outerPoints[5].x,
-            fy=self.outerPoints[5].y,
-            cssClass=terrainCSS
-        ) + self.drawMixedTerrainSVG()
-
-    def drawNumberSVG(self):
-        """Generate svg code for the number to be displayed in a hex.
-        Returns:
-        string: svg code for a number coordinate
-        """
+        # Required variables
         radius = self.grid.radius
         mmratio = self.grid.mmratio
         left = (self.x-radius/2)*mmratio
         top = (self.y-radius/2)*mmratio
         fontsize = str((radius/10)*mmratio) + "mm"
-        return number_t.substitute(left=left, top=top, row=self.row, col=self.col, fontsize=fontsize)
 
-    def drawMixedTerrainSVG(self):
-        """Generate svg code for a hexagon.
+        # Number
+        number_svg = number_t.substitute(
+            left=left, top=top, row=self.row, col=self.col, fontsize=fontsize)
+
+        # Grid
+        grid_svg = polygon_t.substitute(
+            points=points_to_polygon_coord(self.outerPoints),
+            cssClass="grid"
+        )
+
+        return number_svg + grid_svg
+
+    def drawContent(self):
+        """Generate svg code for a hexagon with terrain and all description features
 
         Returns:
         string: svg code for a single hexagon
         """
+
+        # Read metadata
+        terrainCSS = ''
         mixedTerrains = []
         if self.content:
+            terrain = self.content[1].get(
+                'terrain', {}).get('type', 'unknown')
+            terrainCSS = terrainCSS + " " + Terrain[terrain.upper()].css()
             mixedTerrains = self.content[1].get(
                 'terrain', {}).get('mixed', [])
 
-        result = ''
+        # base terrain
+        base_terrain = polygon_t.substitute(
+            points=points_to_polygon_coord(self.outerPoints),
+            cssClass=terrainCSS
+        )
 
+        # mixed terrain
+        mixed_terrain = ''
         for terrain in mixedTerrains:
             typeCSS = terrain.get('type', 'unknown')
             polygons: List[List[Point]] = self.computePartsPolygons(
                 terrain.get('sides', []))
 
             for polygon in polygons:
-                pointStr = ' '.join(
-                    ["{},{}".format(point.x, point.y) for point in polygon])
-                result += polygon_t.substitute(
+                pointStr = points_to_polygon_coord(polygon)
+                mixed_terrain += polygon_t.substitute(
                     points=pointStr,
                     cssClass=typeCSS
                 )
-        return result
+
+        return base_terrain + mixed_terrain
 
     def computePartsPolygons(self, sides: List[str]):
         # TODO optimiser en regroupant les formes afin de faire moins de polygones
@@ -255,7 +254,7 @@ class Hexagon:
         """Access to an innerPoint through cardinal
 
         Args:
-        card (Cardinal): Position of the point
+        card(Cardinal): Position of the point
 
         Returns:
         Point: the expected point
@@ -269,7 +268,7 @@ class Hexagon:
         """Access to an innerPoint through cardinal
 
         Args:
-        card (Cardinal): Position of the point
+        card(Cardinal): Position of the point
 
         Returns:
         Point: the expected point

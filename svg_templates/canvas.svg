@@ -1,11 +1,11 @@
 <svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg">
     <style type="text/css">
         polygon {
+            fill: none;
             stroke-width: $stroke;
         }
 
         .grid {
-            fill: none;
             stroke: #8E8E8E;
             stroke-miterlimit: 10;
         }

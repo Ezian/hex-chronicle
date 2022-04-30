@@ -39,14 +39,14 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max):
 
     grid = HexagonGrid(hexes, col_min, col_max, row_min,
                        row_max, radius=radius, mmratio=mmratio)
-    hexes = ''
-    numbers = ''
+    svgHexes = ''
+    svgGrid = ''
     strokewidth = radius/10
     for hex in grid:
-        hexes += hex.drawSVG()
-        numbers += hex.drawNumberSVG()
+        svgHexes += hex.drawContent()
+        svgGrid += hex.drawGrid()
     canvas = canvas_t.substitute(
-        content=hexes+numbers, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth)
+        content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth)
     return canvas
 
 
