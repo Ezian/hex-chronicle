@@ -5,6 +5,8 @@
     "version": "0.2.0",
     "configurations": [
 
+
+
         {
             "name": "Python: Hexamap",
             "type": "python",
@@ -20,7 +22,7 @@
             "request": "launch",
             "program": "hexamap.py",
             "console": "integratedTerminal",
-            "args": ["--output", "output", "./**/*"],
+            "args": ["--output", "output", "--css", "test_files/custom.css", "./**/*"],
             "justMyCode": true
         },
         {

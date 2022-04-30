@@ -18,7 +18,7 @@ with open('svg_templates/canvas.svg', 'r') as cfile:
     canvas_t = Template(cfile.read())
 
 
-def fill_canvas(hexes, col_min, col_max, row_min, row_max):
+def fill_canvas(hexes, col_min, col_max, row_min, row_max, css):
     """Main function. Create a canvas of given boundaries and fill it with numbered hexes.
 
     Args:
@@ -47,7 +47,7 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max):
         svgGrid += hex.drawGrid()
     canvas = canvas_t.substitute(icons=grid.icons(),
                                  content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth,
-                                 fontsize=str((radius/10)*mmratio) + "mm")
+                                 fontsize=str((radius/10)*mmratio) + "mm", css=css)
     return canvas
 
 
@@ -77,7 +77,7 @@ def parseHexFile(filename):
         return True, col, row, frontmatter.load(f)
 
 
-def generateFromFiles(hexes, output_path):
+def generateFromFiles(hexes, output_path, css):
     # find map boundary
     col_min, col_max = None, None
     row_min, row_max = None, None
@@ -104,7 +104,7 @@ def generateFromFiles(hexes, output_path):
     with open(output_file, 'w') as ofile:
         # Generating canevas with empty hexes around boundaries
         canvas = fill_canvas(hexes, col_min-1,
-                             col_max+1, row_min-1, row_max+1)
+                             col_max+1, row_min-1, row_max+1, css)
         ofile.write(canvas)
 
 
@@ -114,6 +114,8 @@ if __name__ == "__main__":
                         help="Path to files to be merged; enclose in quotes, accepts * as wildcard for directories or filenames")
     parser.add_argument("--output", type=str, default=None,
                         help="File or directory. If the output end with a .svg extension, it will write the file. Elsewhere, it will put a svg file with a generated name at the location")
+    parser.add_argument("--css", type=str, default=None,
+                        help="Css file to override default css values")
 
     args = parser.parse_args()
 
@@ -128,5 +130,10 @@ if __name__ == "__main__":
             isHexFile, col, row, contents = parseHexFile(file)
             if isHexFile:
                 hexfiles[col, row] = file, contents
+    css = ''
 
-    generateFromFiles(hexfiles, args.output)
+    if args.css and Path(args.css).is_file():
+        with open(args.css, 'r') as cfile:
+            css = cfile.read()
+
+    generateFromFiles(hexfiles, args.output, css)

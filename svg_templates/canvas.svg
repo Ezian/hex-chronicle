@@ -79,6 +79,8 @@
         .unknown {
             fill: gray;
         }
+
+        $css
     </style>
     <defs>
         $icons
