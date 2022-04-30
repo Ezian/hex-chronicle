@@ -1,1 +1,1 @@
-<text transform="translate($left $top)" style="font-size: $fontsize;font-family: PTSans-NarrowBold, PT Sans Narrow;font-weight: 700">$row.$col</text>
+<text transform="translate($left $top)" class="number">$row.$col</text>

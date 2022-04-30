@@ -46,7 +46,8 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max):
         svgHexes += hex.drawContent()
         svgGrid += hex.drawGrid()
     canvas = canvas_t.substitute(
-        content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth)
+        content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth,
+        fontsize=str((radius/10)*mmratio) + "mm")
     return canvas
 
 

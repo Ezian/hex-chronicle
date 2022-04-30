@@ -152,11 +152,10 @@ class Hexagon:
         mmratio = self.grid.mmratio
         left = (self.x-radius/2)*mmratio
         top = (self.y-radius/2)*mmratio
-        fontsize = str((radius/10)*mmratio) + "mm"
 
         # Number
         number_svg = number_t.substitute(
-            left=left, top=top, row=self.row, col=self.col, fontsize=fontsize)
+            left=left, top=top, row=self.row, col=self.col)
 
         # Grid
         grid_svg = polygon_t.substitute(
