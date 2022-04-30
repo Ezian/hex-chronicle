@@ -90,9 +90,13 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 # TODOs
 
 ## Before V1 Release
+- Grid optimization: Base polygon should be drawed as defs and duplicated
+  - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
+- hex icon from description 
+  - Include FA icon in canevas as defs, to reference it in svg
+  - Select only used FA icons to not explode the svg size
 - Roads
 - Rivers
-- hex icon from description
 - Hex icon from terrain (font awesome ?)
 
 ## Next
