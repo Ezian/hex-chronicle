@@ -1,4 +1,5 @@
 
+from cmath import pi
 from lib2to3.pygram import python_grammar_no_print_statement
 import math
 from enum import Enum, auto
@@ -148,6 +149,7 @@ class Hexagon:
         self.grid: HexagonGrid = grid
         self.outerPoints = self.__createOuterPoints()
         self.innerPoints = self.__createInnerPoints()
+        self.pathPoints = self.__createPathPoints()
         self.icon = None
         if self.content:
             self.icon = self.content[1].get(
@@ -178,6 +180,22 @@ class Hexagon:
             (self.x-radius/2, self.y+radius2),  # SO
             (self.x+radius/2, self.y+radius2),  # SE
         ]]
+
+    def __createPathPoints(self) -> Dict[Cardinal, Point]:
+        radius = self.grid.radius*0.6
+        radius2 = self.grid.radius2*0.6
+        mmratio = self.grid.mmratio
+        dx = radius2*math.cos(pi/6)
+        coords = {
+            Cardinal.N: Point(self.x, self.y-radius2),
+            Cardinal.NO: Point(self.x-dx, self.y-radius2/2),
+            Cardinal.NE: Point(self.x+dx, self.y-radius2/2),
+            Cardinal.S: Point(self.x, self.y+radius2),
+            Cardinal.SO: Point(self.x-dx, self.y+radius2/2),
+            Cardinal.SE: Point(self.x+dx, self.y+radius2/2),
+            Cardinal.C: Point(self.x, self.y),
+        }
+        return {key: Point(coords[key].x*mmratio, coords[key].y*mmratio) for key in coords.keys()}
 
     def drawGrid(self):
         """Generate svg code for a hexagon, containing the grid and the numbers

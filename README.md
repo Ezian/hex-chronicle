@@ -92,13 +92,13 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 # TODOs
 
 ## Before V1 Release
-- Grid optimization: Base polygon should be drawed as defs and duplicated
-  - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
 - Roads
 - Rivers
-- Hex icon from terrain (font awesome ?)
 
 ## Next
+- Grid optimization: Base polygon should be drawed as defs and duplicated
+  - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
+- Hex icon from terrain
 - securization (markers at borders and number color or font)
 - hex terrain optimization : 
   - Draw only one polygon for contiguous mixed sides (hex we sea coast). It will allow to have coastline in futur
