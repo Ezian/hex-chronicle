@@ -14,7 +14,7 @@ pip install python-frontmatter
 ## Usage
 
 ```sh
-python hexamap.py [files or repositories, allows glob pattern]
+python hexamap.py [--output <file or repository>] <files or repositories, allows glob pattern>
 ```
 
 The script will fetch all files and repository passed as parameters. For each file with a filename formatted like `XXYY-somedescription.md` it will create a hexammap with enough hexagon to contains those defined from the XX,YY coordinate in the filenames.

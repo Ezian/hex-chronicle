@@ -11,6 +11,24 @@
             "request": "launch",
             "program": "hexamap.py",
             "console": "integratedTerminal",
+            "args": ["--output", "hexgrid-example.svg", "./**/*"],
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Hexamap (directory)",
+            "type": "python",
+            "request": "launch",
+            "program": "hexamap.py",
+            "console": "integratedTerminal",
+            "args": ["--output", "output", "./**/*"],
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Hexamap (default output)",
+            "type": "python",
+            "request": "launch",
+            "program": "hexamap.py",
+            "console": "integratedTerminal",
             "args": ["./**/*"],
             "justMyCode": true
         }

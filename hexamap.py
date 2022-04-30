@@ -6,8 +6,8 @@ import glob
 import sys
 import os
 import re
-import math
 from string import Template
+from pathlib import Path
 
 import frontmatter
 
@@ -77,7 +77,7 @@ def parseHexFile(filename):
         return True, col, row, frontmatter.load(f)
 
 
-def generateFromFiles(hexes):
+def generateFromFiles(hexes, output_path):
     # find map boundary
     col_min, col_max = None, None
     row_min, row_max = None, None
@@ -91,7 +91,17 @@ def generateFromFiles(hexes):
         if row_max is None or row_max < row:
             row_max = row
 
-    with open('output/hexgrid-cm'+str(col_min)+'cM'+str(col_max)+'rm'+str(row_min)+'rM'+str(row_max)+'.svg', 'w') as ofile:
+    output_file = 'hexgrid-cm' + \
+        str(col_min)+'cM'+str(col_max)+'rm' + \
+        str(row_min)+'rM'+str(row_max)+'.svg'
+
+    if output_path and Path(output_path).suffix == '.svg':
+        output_file = output_path
+
+    elif output_path:
+        output_file = Path(output_path).joinpath(output_file)
+
+    with open(output_file, 'w') as ofile:
         # Generating canevas with empty hexes around boundaries
         ofile.write(fill_canvas(hexes, col_min-1,
                     col_max+1, row_min-1, row_max+1))
@@ -101,6 +111,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("src_path", metavar="path", type=str, nargs='*',
                         help="Path to files to be merged; enclose in quotes, accepts * as wildcard for directories or filenames")
+    parser.add_argument("--output", type=str, default=None,
+                        help="File or directory. If the output end with a .svg extension, it will write the file. Elsewhere, it will put a svg file with a generated name at the location")
 
     args = parser.parse_args()
 
@@ -116,4 +128,4 @@ if __name__ == "__main__":
             if isHexFile:
                 hexfiles[col, row] = file, contents
 
-    generateFromFiles(hexfiles)
+    generateFromFiles(hexfiles, args.output)
