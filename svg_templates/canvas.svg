@@ -16,6 +16,20 @@
             stroke-width: 0.7mm;
         }
 
+        .path {
+            fill: transparent;
+            stroke-width: 1mm;
+        }
+
+
+        .roads {
+            stroke: saddlebrown;
+        }
+
+        .rivers {
+            stroke: blue;
+        }
+
         .grid {
             stroke: #8E8E8E;
             stroke-miterlimit: 10;

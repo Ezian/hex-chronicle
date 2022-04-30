@@ -36,6 +36,10 @@ terrain:
             - SO
 alt: Some Text # this text will be printed in the hex if there is no icon. It should be short.
 icon: fortin # An icon will be placed on the hexagon. No alt text will be added
+roads: 
+    - SO SE # To draw some roads on the polygon, from a side to another, or from the center to a side
+rivers: 
+    - N S # To draw some rivers on the polygon, from a side to another, or from the center to a side
 ---
 ```
 
@@ -89,13 +93,8 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ![It's beautiful](hexgrid-example.svg)
 
-# TODOs
+## TODOs
 
-## Before V1 Release
-- Roads
-- Rivers
-
-## Next
 - Grid optimization: Base polygon should be drawed as defs and duplicated
   - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
 - Hex icon from terrain
@@ -108,4 +107,4 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ## Thanks
  
- Thanks to <https://github.com/toonvandeputte/hexmaker> which give me the base of the algorithm.
+ Thanks to <https://github.com/toonvandeputte/hexmaker> which give me the base of the algorithm even if it has been quite modified and upgraded. I would'nt have the motivation without this code.

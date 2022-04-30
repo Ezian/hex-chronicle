@@ -20,9 +20,11 @@ with open('svg_templates/number.svg', 'r') as cfile:
 with open('svg_templates/polygon.svg', 'r') as cfile:
     polygon_t = Template(cfile.read())
 
-
 with open('svg_templates/icon.svg', 'r') as cfile:
     icon_t = Template(cfile.read())
+
+with open('svg_templates/path.svg', 'r') as cfile:
+    path_t = Template(cfile.read())
 
 
 def calc_radius2(radius):
@@ -182,8 +184,8 @@ class Hexagon:
         ]]
 
     def __createPathPoints(self) -> Dict[Cardinal, Point]:
-        radius = self.grid.radius*0.6
-        radius2 = self.grid.radius2*0.6
+        radius = self.grid.radius
+        radius2 = self.grid.radius2
         mmratio = self.grid.mmratio
         dx = radius2*math.cos(pi/6)
         coords = {
@@ -261,18 +263,37 @@ class Hexagon:
                 )
 
         # Text or icon
-        pointO = self.pin(Cardinal.O)
-        pointE = self.pin(Cardinal.E)
-        cx = (pointE.x+pointO.x)/2
-        cy = pointE.y
+        c = self.pathPoints[Cardinal.C]
         text = ''
         if self.icon:
-            text = self.grid.iconsDict[self.icon].draw(cx, cy)
+            text = self.grid.iconsDict[self.icon].draw(c.x, c.y)
         elif alt:
             text = text_t.substitute(
-                cx=cx, cy=cy, text=alt)
+                cx=c.x, cy=c.y, text=alt)
 
-        return base_terrain + mixed_terrain + text
+        road = self.__computePath('roads')
+        river = self.__computePath('rivers')
+
+        return base_terrain + mixed_terrain + road + river + text
+
+    def __computePath(self, typeOfPath: str) -> str:
+        paths = []
+        result = ''
+        if self.content:
+            paths = self.content[1].get(
+                typeOfPath, [])
+
+        for path in paths:
+            try:
+                b, e = [self.pathPoints[Cardinal[k.upper()]]
+                        for k in path.split()]
+                c = self.pathPoints[Cardinal.C]
+                result += path_t.substitute(type=typeOfPath,
+                                            bx=b.x, by=b.y, ex=e.x, ey=e.y, cx=c.x, cy=c.y)
+            except:
+                print("Warning: fail compute "+type+" '"+path+"'")
+
+        return result
 
     def computePartsPolygons(self, sides: List[str]):
         # TODO optimiser en regroupant les formes afin de faire moins de polygones

@@ -8,4 +8,6 @@ terrain:
             - "N"
 alt: Fortin
 icon: fortin
+roads: 
+    - c NE 
 ---

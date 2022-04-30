@@ -7,4 +7,6 @@ terrain:
             - SO
 alt: Ruines
 icon: ruines
+roads: 
+    - n C
 ---
