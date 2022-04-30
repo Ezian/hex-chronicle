@@ -3,9 +3,11 @@ from lib2to3.pygram import python_grammar_no_print_statement
 import math
 from enum import Enum, auto
 from multiprocessing.sharedctypes import Value
-from typing import List
+from typing import List, Dict
 from string import Template
+from pathlib import Path
 import frontmatter
+from xml.dom import minidom
 
 
 with open('svg_templates/text.svg', 'r') as cfile:
@@ -16,6 +18,10 @@ with open('svg_templates/number.svg', 'r') as cfile:
 
 with open('svg_templates/polygon.svg', 'r') as cfile:
     polygon_t = Template(cfile.read())
+
+
+with open('svg_templates/icon.svg', 'r') as cfile:
+    icon_t = Template(cfile.read())
 
 
 def calc_radius2(radius):
@@ -58,25 +64,6 @@ class Cardinal(Enum):
     def pid(self):
         return self.value[1]
 
-# Type of terrain
-
-
-class Terrain(Enum):
-    PLAINS = (auto(), 'plain')
-    GRASSLAND = (auto(), 'grass')
-    LIGHT_WOODS = (auto(), 'lwood')
-    HEAVY_WOODS = (auto(), 'hwood')
-    MOUNTAINS = (auto(), 'mountain')
-    HILLS = (auto(), 'hill')
-    MARSH = (auto(), 'marsh')
-    DESERT = (auto(), 'desert')
-    LAKE = (auto(), 'lake')
-    SEA = (auto(), 'sea')
-    UNKNOWN = (auto(), 'unknown')
-
-    def css(self):
-        return self.value[1]
-
 
 class HexagonGrid:
 
@@ -99,10 +86,55 @@ class HexagonGrid:
             row += 1
         self.width: int = math.ceil((col_max-col_min+1)*self.radius*1.5)
         self.height: int = math.ceil((row_max-row_min+1)*self.radius2*2)
+        self.iconsDict = self.__computeIcons()
+
+    def __computeIcons(self):
+        result = dict()
+        for hex in self.hexes:
+            icon = hex.icon
+            if not icon:
+                continue
+
+            icon_path = Path(
+                'svg_templates/icons/building').joinpath(icon+".svg")
+            if not icon_path.is_file():
+                continue
+
+            # extract inner svg
+            with open(icon_path, 'r') as cfile:
+                try:
+                    doc = minidom.parseString(cfile.read())
+                    svgDom = doc.getElementsByTagName("svg")[0]
+                    viewBox = svgDom.getAttribute('viewBox')
+                    max_box = max([float(n) for n in viewBox.split(' ')])
+                    scale = self.radius2/max_box
+                    svgDom.setAttribute("id", icon)
+                    svgDom.setAttribute("class", "icon "+icon)
+                    result[icon] = Icon(self, icon, scale, svgDom.toxml())
+                except:
+                    print("Warning: icon format not supported")
+                    continue
+
+        return result
+
+    def icons(self) -> str:
+        return ''.join([icon.svgDef for icon in self.iconsDict.values()])
 
     def __iter__(self):
         ''' Returns the Iterator object '''
         return self.hexes.__iter__()
+
+
+class Icon:
+    def __init__(self, grid: HexagonGrid, id: str, scale: float, svgDef: str) -> None:
+        self.grid = grid
+        self.id = id
+        self.scale = scale
+        self.svgDef = svgDef
+        pass
+
+    def draw(self, tx: float, ty: float) -> str:
+        return icon_t.substitute(id=self.id, tx=tx-self.grid.radius, ty=ty-self.grid.radius2, scale=self.scale)
 
 
 class Hexagon:
@@ -116,6 +148,10 @@ class Hexagon:
         self.grid: HexagonGrid = grid
         self.outerPoints = self.__createOuterPoints()
         self.innerPoints = self.__createInnerPoints()
+        self.icon = None
+        if self.content:
+            self.icon = self.content[1].get(
+                'icon', None)
 
     def __createOuterPoints(self) -> List[Point]:
         radius = self.grid.radius
@@ -181,7 +217,7 @@ class Hexagon:
         if self.content:
             terrain = self.content[1].get(
                 'terrain', {}).get('type', 'unknown')
-            terrainCSS = terrainCSS + " " + Terrain[terrain.upper()].css()
+            terrainCSS = terrain.lower()
             mixedTerrains = self.content[1].get(
                 'terrain', {}).get('mixed', [])
             alt = self.content[1].get('alt', None)
@@ -206,13 +242,17 @@ class Hexagon:
                     cssClass=typeCSS
                 )
 
-        # Text
-        text = ''
+        # Text or icon
         pointO = self.pin(Cardinal.O)
         pointE = self.pin(Cardinal.E)
-        if alt:
+        cx = (pointE.x+pointO.x)/2
+        cy = pointE.y
+        text = ''
+        if self.icon:
+            text = self.grid.iconsDict[self.icon].draw(cx, cy)
+        elif alt:
             text = text_t.substitute(
-                cx=(pointE.x+pointO.x)/2, cy=pointE.y, text=alt)
+                cx=cx, cy=cy, text=alt)
 
         return base_terrain + mixed_terrain + text
 

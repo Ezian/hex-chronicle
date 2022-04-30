@@ -1,0 +1,1 @@
+<use xlink:href="#$id" transform="translate($tx $ty) scale($scale $scale)" />

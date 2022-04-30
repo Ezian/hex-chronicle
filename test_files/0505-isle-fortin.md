@@ -7,4 +7,5 @@ terrain:
             - "NO"
             - "N"
 alt: Fortin
+icon: fortin
 ---

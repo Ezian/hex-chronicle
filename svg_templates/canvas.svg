@@ -1,4 +1,5 @@
-<svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg">
+<svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
     <style type="text/css">
         polygon {
             fill: none;
@@ -24,27 +25,35 @@
 
         .alt_text {}
 
-        .plain {
+        .icon {
+            paint-order: stroke;
+            stroke: black;
+            fill: darkslategrey;
+            stroke-width: 2mm;
+        }
+
+
+        .plains {
             fill: lightgreen;
         }
 
-        .lwood {
+        .light_wood {
             fill: green;
         }
 
-        .hwood {
+        .heavy_woods {
             fill: darkgreen;
         }
 
-        .grass {
+        .grassland {
             fill: chartreuse;
         }
 
-        .mountain {
+        .mountains {
             fill: maroon;
         }
 
-        .hill {
+        .hills {
             fill: bisque;
         }
 
@@ -71,5 +80,8 @@
             fill: gray;
         }
     </style>
+    <defs>
+        $icons
+    </defs>
     $content
 </svg>

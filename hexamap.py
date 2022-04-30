@@ -45,9 +45,9 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max):
     for hex in grid:
         svgHexes += hex.drawContent()
         svgGrid += hex.drawGrid()
-    canvas = canvas_t.substitute(
-        content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth,
-        fontsize=str((radius/10)*mmratio) + "mm")
+    canvas = canvas_t.substitute(icons=grid.icons(),
+                                 content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth,
+                                 fontsize=str((radius/10)*mmratio) + "mm")
     return canvas
 
 
@@ -103,8 +103,9 @@ def generateFromFiles(hexes, output_path):
 
     with open(output_file, 'w') as ofile:
         # Generating canevas with empty hexes around boundaries
-        ofile.write(fill_canvas(hexes, col_min-1,
-                    col_max+1, row_min-1, row_max+1))
+        canvas = fill_canvas(hexes, col_min-1,
+                             col_max+1, row_min-1, row_max+1)
+        ofile.write(canvas)
 
 
 if __name__ == "__main__":

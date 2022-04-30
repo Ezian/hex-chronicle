@@ -6,4 +6,5 @@ terrain:
           sides:
             - SO
 alt: Ruines
+icon: ruines
 ---
