@@ -5,4 +5,5 @@ terrain:
         - type: sea
           sides:
             - SO
+alt: Ruines
 ---

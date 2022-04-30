@@ -34,6 +34,7 @@ terrain:
         - type: marsh
           sides:
             - SO
+alt: Some Text # this text will be printed in the hex if there is no icon. It should be short.
 
 ---
 

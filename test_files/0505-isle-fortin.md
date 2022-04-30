@@ -6,4 +6,5 @@ terrain:
           sides:
             - "NO"
             - "N"
+alt: Fortin
 ---

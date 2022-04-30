@@ -5,16 +5,24 @@
             stroke-width: $stroke;
         }
 
+        text {
+            font-size: $fontsize;
+            font-family: PTSans-NarrowBold, PT Sans Narrow;
+            font-weight: 600;
+            paint-order: stroke;
+            stroke: black;
+            fill: white;
+            stroke-width: 0.7mm;
+        }
+
         .grid {
             stroke: #8E8E8E;
             stroke-miterlimit: 10;
         }
 
-        .number {
-            font-size: $fontsize;
-            font-family: PTSans-NarrowBold, PT Sans Narrow;
-            font-weight: 700
-        }
+        .number {}
+
+        .alt_text {}
 
         .plain {
             fill: lightgreen;

@@ -7,6 +7,10 @@ from typing import List
 from string import Template
 import frontmatter
 
+
+with open('svg_templates/text.svg', 'r') as cfile:
+    text_t = Template(cfile.read())
+
 with open('svg_templates/number.svg', 'r') as cfile:
     number_t = Template(cfile.read())
 
@@ -89,8 +93,6 @@ class HexagonGrid:
         while row <= self.row_max:
             col = self.col_min
             while col <= self.col_max:
-                y = self.radius2*2*row + col % 2*self.radius2
-                x = self.radius*1.5*col
                 self.hexes.append(
                     Hexagon(self, col, row, hexes.get((col, row), None)))
                 col += 1
@@ -175,12 +177,14 @@ class Hexagon:
         # Read metadata
         terrainCSS = ''
         mixedTerrains = []
+        alt = None
         if self.content:
             terrain = self.content[1].get(
                 'terrain', {}).get('type', 'unknown')
             terrainCSS = terrainCSS + " " + Terrain[terrain.upper()].css()
             mixedTerrains = self.content[1].get(
                 'terrain', {}).get('mixed', [])
+            alt = self.content[1].get('alt', None)
 
         # base terrain
         base_terrain = polygon_t.substitute(
@@ -202,7 +206,15 @@ class Hexagon:
                     cssClass=typeCSS
                 )
 
-        return base_terrain + mixed_terrain
+        # Text
+        text = ''
+        pointO = self.pin(Cardinal.O)
+        pointE = self.pin(Cardinal.E)
+        if alt:
+            text = text_t.substitute(
+                cx=(pointE.x+pointO.x)/2, cy=pointE.y, text=alt)
+
+        return base_terrain + mixed_terrain + text
 
     def computePartsPolygons(self, sides: List[str]):
         # TODO optimiser en regroupant les formes afin de faire moins de polygones
