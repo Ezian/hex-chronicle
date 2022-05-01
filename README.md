@@ -165,6 +165,9 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ### Next
 
+- placeholder CSV file to render a bunch of polygon without creating a file (they will be ignored if an hex is defined at their place)
+- link to hex files by clicking on a hex
+- tooltip when hover over a hex
 - Grid optimization: Base polygon should be drawed as defs and duplicated
   - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
 - Hex icon from terrain
