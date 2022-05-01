@@ -3,7 +3,7 @@
     <style type="text/css">
         polygon {
             fill: none;
-            stroke-width: $stroke;
+            stroke-width: $strokegrid;
         }
 
         text {
@@ -13,12 +13,12 @@
             paint-order: stroke;
             stroke: black;
             fill: white;
-            stroke-width: 0.7mm;
+            stroke-width: $strokefont;
         }
 
         .path {
             fill: transparent;
-            stroke-width: 1mm;
+            stroke-width: $strokepath;
         }
 
 
@@ -43,7 +43,7 @@
             paint-order: stroke;
             stroke: black;
             fill: darkslategrey;
-            stroke-width: 2mm;
+            stroke-width: 2;
         }
 
 

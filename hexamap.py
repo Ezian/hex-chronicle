@@ -32,22 +32,20 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max, css):
        string: svg of the entire canvas, ready for writing to a file.
     """
     # Wider radius of the hexagon
-    radius: float = 20
-
-    # Ratio to convert user unit to mm.
-    mmratio = 3
+    radius: float = 100
 
     grid = HexagonGrid(hexes, col_min, col_max, row_min,
-                       row_max, radius=radius, mmratio=mmratio)
+                       row_max, radius=radius)
     svgHexes = ''
     svgGrid = ''
-    strokewidth = radius/10
+    strokewidth = radius/15
+    fontsize = str(2.5*radius)+"%"
     for hex in grid:
         svgHexes += hex.drawContent()
         svgGrid += hex.drawGrid()
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svgHexes + svgGrid, width=str(grid.width)+"mm", height=str(grid.height)+"mm", stroke=strokewidth,
-                                 fontsize=str((radius/10)*mmratio) + "mm", css=css)
+                                 content=svgHexes + svgGrid, width=str(grid.width), height=str(grid.height), strokegrid=strokewidth, strokefont=strokewidth/1.5, strokepath=strokewidth*1.2,
+                                 fontsize=fontsize, css=css)
     return canvas
 
 

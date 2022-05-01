@@ -1,6 +1,5 @@
 
 from cmath import pi
-from lib2to3.pygram import python_grammar_no_print_statement
 import math
 from enum import Enum, auto
 from multiprocessing.sharedctypes import Value
@@ -28,10 +27,10 @@ with open('svg_templates/path.svg', 'r') as cfile:
 
 
 def calc_radius2(radius):
-    """Calculate the shortest (inner) radius for the given (outer) hex radius in mm
+    """Calculate the shortest (inner) radius for the given (outer) hex radius
 
         Args:
-        radius (integer): hex radius in mm (widest)
+        radius (integer): hex radius (widest)
 
         Returns:
         integer: Inner radius for the given outer radius.
@@ -70,24 +69,29 @@ class Cardinal(Enum):
 
 class HexagonGrid:
 
-    def __init__(self, hexes, col_min: int, col_max: int, row_min: int, row_max: int, radius: float = 20, mmratio: float = 3) -> None:
+    def __init__(self, hexes, col_min: int, col_max: int, row_min: int, row_max: int, radius: float = 20) -> None:
         self.radius: float = radius
-        self.mmratio: float = mmratio
         self.radius2: float = calc_radius2(radius)
         self.row_min: int = row_min
         self.row_max: int = row_max
         self.col_min: int = col_min
         self.col_max: int = col_max
         self.hexes: list[Hexagon] = list()
+        self.y0: float = self.radius2*2*row_min + \
+            col_min % 2*self.radius2 - self.radius2
+        self.x0: float = self.radius*col_min
         row = self.row_min
         while row <= self.row_max:
             col = self.col_min
             while col <= self.col_max:
+                y = self.radius2*2*row + col % 2*self.radius2
+                x = self.radius*1.5*col
                 self.hexes.append(
-                    Hexagon(self, col, row, hexes.get((col, row), None)))
+                    Hexagon(self, x - self.x0, y - self.y0,  col, row, hexes.get((col, row), None)))
                 col += 1
             row += 1
-        self.width: int = math.ceil((col_max-col_min+1)*self.radius*1.5)
+        self.width: int = math.ceil(
+            (col_max-col_min+1)*self.radius*1.5 + self.radius)
         self.height: int = math.ceil((row_max-row_min+1)*self.radius2*2)
         self.iconsDict = self.__computeIcons()
 
@@ -142,9 +146,9 @@ class Icon:
 
 class Hexagon:
 
-    def __init__(self, grid: HexagonGrid, column: int, row: int, content: frontmatter.Post = None) -> None:
-        self.y: float = grid.radius2*2*row + column % 2*grid.radius2
-        self.x: float = grid.radius*1.5*column
+    def __init__(self, grid: HexagonGrid, x: float, y: float, column: int, row: int, content: frontmatter.Post = None) -> None:
+        self.x = x
+        self.y = y
         self.col: int = column
         self.row: int = row
         self.content = content
@@ -160,8 +164,7 @@ class Hexagon:
     def __createOuterPoints(self) -> List[Point]:
         radius = self.grid.radius
         radius2 = self.grid.radius2
-        mmratio = self.grid.mmratio
-        return [Point(x*mmratio, y*mmratio) for (x, y) in [
+        return [Point(x, y) for (x, y) in [
             (self.x+radius, self.y),            # E
             (self.x+radius/2, self.y-radius2),  # NE
             (self.x-radius/2, self.y-radius2),  # NO
@@ -173,8 +176,7 @@ class Hexagon:
     def __createInnerPoints(self) -> List[Point]:
         radius = self.grid.radius*0.6
         radius2 = self.grid.radius2*0.6
-        mmratio = self.grid.mmratio
-        return [Point(x*mmratio, y*mmratio) for (x, y) in [
+        return [Point(x, y) for (x, y) in [
             (self.x+radius, self.y),            # E
             (self.x+radius/2, self.y-radius2),  # NE
             (self.x-radius/2, self.y-radius2),  # NO
@@ -186,7 +188,6 @@ class Hexagon:
     def __createPathPoints(self) -> Dict[Cardinal, Point]:
         radius = self.grid.radius
         radius2 = self.grid.radius2
-        mmratio = self.grid.mmratio
         dx = radius2*math.cos(pi/6)
         coords = {
             Cardinal.N: Point(self.x, self.y-radius2),
@@ -197,7 +198,7 @@ class Hexagon:
             Cardinal.SE: Point(self.x+dx, self.y+radius2/2),
             Cardinal.C: Point(self.x, self.y),
         }
-        return {key: Point(coords[key].x*mmratio, coords[key].y*mmratio) for key in coords.keys()}
+        return {key: Point(coords[key].x, coords[key].y) for key in coords.keys()}
 
     def drawGrid(self):
         """Generate svg code for a hexagon, containing the grid and the numbers
@@ -207,9 +208,8 @@ class Hexagon:
         """
         # Required variables
         radius = self.grid.radius
-        mmratio = self.grid.mmratio
-        left = (self.x-radius/2)*mmratio
-        top = (self.y-radius/2)*mmratio
+        left = (self.x-radius/2)
+        top = (self.y-radius/2)
 
         # Number
         number_svg = number_t.substitute(

@@ -1,5 +1,5 @@
 ---
 terrain:
-    type: light_woods
+    type: light_wood
 
 ---
