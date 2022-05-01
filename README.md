@@ -119,23 +119,7 @@ Below icons are available.
 | ![ruines](svg_templates/icons/building/ruines.svg)             | ruines       |
 | ![sidhes](svg_templates/icons/building/sidhes.svg)             | sidhes       |
 | ![temple](svg_templates/icons/building/temple.svg)             | temple       |
-| ![village](svg_templates/icons/building/village.svg)           | village      |
-| ![capitale](svg_templates/icons/building/capitale.svg)         | capitale     |
-| ![cavaliers](svg_templates/icons/building/cavaliers.svg)       | cavaliers    |
-| ![chevaucheurs](svg_templates/icons/building/chevaucheurs.svg) | chevaucheurs |
-| ![fort](svg_templates/icons/building/fort.svg)                 | fort         |
-| ![fortin](svg_templates/icons/building/fortin.svg)             | fortin       |
-| ![mages](svg_templates/icons/building/mages.svg)               | mages        |
-| ![nains](svg_templates/icons/building/nains.svg)               | nains        |
-| ![observatoire](svg_templates/icons/building/observatoire.svg) | observatoire |
-| ![pont](svg_templates/icons/building/pont.svg)                 | pont         |
-| ![portail](svg_templates/icons/building/portail.svg)           | portail      |
-| ![ruines](svg_templates/icons/building/ruines.svg)             | ruines       |
-| ![sidhes](svg_templates/icons/building/sidhes.svg)             | sidhes       |
-| ![temple](svg_templates/icons/building/temple.svg)             | temple       |
-| ![village](svg_templates/icons/building/village.svg)           | village      |
-
-
+| ![village](svg_templates/icons/building/village.svg)           | 
 
 ## The Hexagon concept
 
