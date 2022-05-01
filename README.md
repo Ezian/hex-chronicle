@@ -119,7 +119,7 @@ Below icons are available.
 | ![ruines](svg_templates/icons/building/ruines.svg)             | ruines       |
 | ![sidhes](svg_templates/icons/building/sidhes.svg)             | sidhes       |
 | ![temple](svg_templates/icons/building/temple.svg)             | temple       |
-| ![village](svg_templates/icons/building/village.svg)           | 
+| ![village](svg_templates/icons/building/village.svg)           | village      |
 
 ## The Hexagon concept
 
