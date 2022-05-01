@@ -64,7 +64,7 @@ def parseHexFile(filename):
         return error
     # The filename should follow the pattern XXYY-<some_name>.md
     basename = os.path.basename(filename)
-    m = re.match('^(\d{2})(\d{2})-.*\.md$', basename)
+    m = re.match('^(-?\d{2})(-?\d{2})-.*\.md$', basename)
     if m is None:
         return error
 

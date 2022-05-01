@@ -113,11 +113,15 @@ class HexagonGrid:
                     doc = minidom.parseString(cfile.read())
                     svgDom = doc.getElementsByTagName("svg")[0]
                     viewBox = svgDom.getAttribute('viewBox')
-                    max_box = max([float(n) for n in viewBox.split(' ')])
-                    scale = self.radius2/max_box
+                    x0, y0, x1, y1 = [float(n) for n in viewBox.split(' ')]
+                    max_box = max(x1 - x0, y1 - y0)
+
+                    scale = self.radius2/max_box/1.1
+                    svgDom.removeAttribute('viewBox')
                     svgDom.setAttribute("id", icon)
                     svgDom.setAttribute("class", "icon "+icon)
-                    result[icon] = Icon(self, icon, scale, svgDom.toxml())
+                    result[icon] = Icon(
+                        self, icon, scale*(x1 - x0)/2, scale*(y1 - y0)/2, scale, svgDom.toxml())
                 except:
                     print("Warning: icon format not supported")
                     continue
@@ -133,15 +137,17 @@ class HexagonGrid:
 
 
 class Icon:
-    def __init__(self, grid: HexagonGrid, id: str, scale: float, svgDef: str) -> None:
+    def __init__(self, grid: HexagonGrid, id: str, ox: float, oy: float, scale: float, svgDef: str) -> None:
         self.grid = grid
         self.id = id
         self.scale = scale
         self.svgDef = svgDef
+        self.oy = oy
+        self.ox = ox
         pass
 
     def draw(self, tx: float, ty: float) -> str:
-        return icon_t.substitute(id=self.id, tx=tx-self.grid.radius, ty=ty-self.grid.radius2, scale=self.scale)
+        return icon_t.substitute(id=self.id, tx=tx-self.ox, ty=ty-self.oy, scale=self.scale)
 
 
 class Hexagon:

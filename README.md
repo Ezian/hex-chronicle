@@ -95,11 +95,6 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ## TODOs
 
-### Before Release
-
-- Fix draw icon => Scaling dependant of the size of the map, it works well with the current one, but it break when the map size change
-- Fix the width computing : it should be a bit larger.
-
 ### Next
 
 - Grid optimization: Base polygon should be drawed as defs and duplicated
@@ -108,7 +103,7 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 - securization (markers at borders and number color or font)
 - hex terrain optimization : 
   - Draw only one polygon for contiguous mixed sides (hex we sea coast). It will allow to have coastline in futur
-- Fix : zero row or column and Negative row column for hex
+- Fix : Negative row column for hex
 - Allow custom icons 
 
 
