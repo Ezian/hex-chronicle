@@ -14,8 +14,6 @@ An hex-map generator for exploration sand-box RPG
   - [The Hexagon concept](#the-hexagon-concept)
     - [Zone composition](#zone-composition)
     - [Polygon composition](#polygon-composition)
-  - [TODOs](#todos)
-    - [Next](#next)
   - [Thanks](#thanks)
 
 ## Python version
@@ -160,23 +158,6 @@ With this concept, we can easily compute different subparts of the hexagon and c
 ### Polygon composition
 
 Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of the outer). Computing a valid compound zone polygon requires to put all those points in a set, then sort the sequence like that: Outer circle point in trigonometric order (E < NE < NO < O < SO < SE < E, points must be consecutive), inner circle point in reverse-trigonometric order (E < SE < SO < O < NO < NE < E)
-
-## TODOs
-
-### Next
-
-- placeholder CSV file to render a bunch of polygon without creating a file (they will be ignored if an hex is defined at their place)
-- link to hex files by clicking on a hex
-- tooltip when hover over a hex
-- Grid optimization: Base polygon should be drawed as defs and duplicated
-  - cf [http://thenewcode.com/1102/Cloning-SVG-Elements-Using-use]
-- Hex icon from terrain
-- securization (markers at borders and number color or font)
-- hex terrain optimization : 
-  - Draw only one polygon for contiguous mixed sides (hex we sea coast). It will allow to have coastline in futur
-- Fix : Negative row column for hex
-- Allow custom icons 
-
 
 ## Thanks
  
