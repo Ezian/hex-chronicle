@@ -94,6 +94,16 @@
             fill: gray;
         }
 
+        .zone {
+            stroke-dasharray: 15;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        
+        .zone.secured {
+          stroke: green;
+        }
+        
         $css
     </style>
     <defs>

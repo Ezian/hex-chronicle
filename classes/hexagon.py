@@ -1,14 +1,12 @@
-
-from cmath import pi
 import math
+from decimal import *
 from enum import Enum, auto
-from multiprocessing.sharedctypes import Value
-from typing import List, Dict
-from string import Template
 from pathlib import Path
-import frontmatter
+from string import Template
+from typing import List, Dict
 from xml.dom import minidom
 
+import frontmatter
 
 with open('svg_templates/text.svg', 'r') as cfile:
     text_t = Template(cfile.read())
@@ -26,7 +24,7 @@ with open('svg_templates/path.svg', 'r') as cfile:
     path_t = Template(cfile.read())
 
 
-def calc_radius2(radius):
+def calc_radius2(radius: Decimal):
     """Calculate the shortest (inner) radius for the given (outer) hex radius
 
         Args:
@@ -35,18 +33,47 @@ def calc_radius2(radius):
         Returns:
         integer: Inner radius for the given outer radius.
         """
-    return math.sqrt(radius ** 2 - (radius/2) ** 2)
+
+    return (radius ** 2 - (radius / 2) ** 2).sqrt()
 
 
 class Point:
-    def __init__(self, x: float, y: float) -> None:
+    def __init__(self, x: Decimal, y: Decimal) -> None:
         self.x = x
         self.y = y
+
+    def __repr__(self):
+        return f"Point({self.x}, {self.y})"
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash(self.x) + hash(self.y)
+
+
+class Segment:
+    def __init__(self, a: Point, b: Point) -> None:
+        self.a = a
+        self.b = b
+
+    def __eq__(self, other):
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == other.a)
+
+    def __hash__(self):
+        return hash(self.a) + hash(self.b)
+
+    def touches(self, p: Point):
+        return self.a == p or self.b == p
+
+    def __repr__(self):
+        return f"Segment({self.a} - {self.b})"
 
 
 def points_to_polygon_coord(points: List[Point]):
     return ' '.join(
         ["{},{}".format(point.x, point.y) for point in points])
+
 
 # Type of terrain
 
@@ -69,30 +96,43 @@ class Cardinal(Enum):
 
 class HexagonGrid:
 
-    def __init__(self, hexes, col_min: int, col_max: int, row_min: int, row_max: int, radius: float = 20) -> None:
-        self.radius: float = radius
-        self.radius2: float = calc_radius2(radius)
+    def __init__(self, hexes, col_min: int, col_max: int, row_min: int, row_max: int, radius: Decimal = 20) -> None:
+        self.radius: Decimal = radius
+        self.radius2: Decimal = calc_radius2(radius)
         self.row_min: int = row_min
         self.row_max: int = row_max
         self.col_min: int = col_min
         self.col_max: int = col_max
         self.hexes: list[Hexagon] = list()
-        self.y0: float = self.radius2*2*row_min + \
-            col_min % 2*self.radius2 - self.radius2
-        self.x0: float = self.radius*col_min
+        self.y0: Decimal = self.radius2 * 2 * row_min + \
+                           col_min % 2 * self.radius2 - self.radius2
+        self.x0: Decimal = self.radius * col_min
         row = self.row_min
-        while row <= self.row_max:
-            col = self.col_min
-            while col <= self.col_max:
-                y = self.radius2*2*row + col % 2*self.radius2
-                x = self.radius*1.5*col
-                self.hexes.append(
-                    Hexagon(self, x - self.x0, y - self.y0,  col, row, hexes.get((col, row), None)))
-                col += 1
-            row += 1
+        
+        ## Here, we need to use a high precision decimal context. Otherwise some point that MUST have the same
+        # coordinate do not. This breaks Clustering feature.
+        # The default precision for Decimal is 28, so we must use a precision sufficient to hold this + powers and products
+        # So why not 35 ? 
+        # We also enable Traps, so that this can be quickly detected.
+        with localcontext() as ctx:
+            ctx.traps[FloatOperation] = True
+            ctx.traps[Clamped] = True
+            ctx.traps[Rounded] = True
+            ctx.traps[Inexact] = True
+            ctx.prec = 35
+            while row <= self.row_max:
+                col = self.col_min
+                while col <= self.col_max:
+                    y = self.radius2 * 2 * row + col % 2 * self.radius2
+                    x = self.radius * Decimal("1.5") * col
+                    hexagon = Hexagon(self, x - self.x0, y - self.y0, col, row, hexes.get((col, row), None))
+                    self.hexes.append(
+                        hexagon)
+                    col += 1
+                row += 1
         self.width: int = math.ceil(
-            (col_max-col_min+1)*self.radius*1.5 + self.radius)
-        self.height: int = math.ceil((row_max-row_min+1)*self.radius2*2)
+            (col_max - col_min + 1) * self.radius * Decimal("1.5") + self.radius)
+        self.height: int = math.ceil((row_max - row_min + 1) * self.radius2 * 2)
         self.iconsDict = self.__computeIcons()
 
     def __computeIcons(self):
@@ -113,10 +153,10 @@ class HexagonGrid:
                     doc = minidom.parseString(cfile.read())
                     svgDom = doc.getElementsByTagName("svg")[0]
                     viewBox = svgDom.getAttribute('viewBox')
-                    x0, y0, x1, y1 = [float(n) for n in viewBox.split(' ')]
+                    x0, y0, x1, y1 = [Decimal(n) for n in viewBox.split(' ')]
                     max_box = max(x1 - x0, y1 - y0)
 
-                    scale = self.radius2/max_box/1.1
+                    scale = self.radius2 / max_box / Decimal(1.1)
                     svgDom.removeAttribute('viewBox')
                     svgDom.setAttribute("id", icon)
                     svgDom.setAttribute("class", "icon "+icon)
@@ -137,7 +177,7 @@ class HexagonGrid:
 
 
 class Icon:
-    def __init__(self, grid: HexagonGrid, id: str, ox: float, oy: float, scale: float, svgDef: str) -> None:
+    def __init__(self, grid: HexagonGrid, id: str, ox: Decimal, oy: Decimal, scale: Decimal, svgDef: str) -> None:
         self.grid = grid
         self.id = id
         self.scale = scale
@@ -146,13 +186,14 @@ class Icon:
         self.ox = ox
         pass
 
-    def draw(self, tx: float, ty: float) -> str:
-        return icon_t.substitute(id=self.id, tx=tx-self.ox, ty=ty-self.oy, scale=self.scale)
+    def draw(self, tx: Decimal, ty: Decimal) -> str:
+        return icon_t.substitute(id=self.id, tx=tx - self.ox, ty=ty - self.oy, scale=self.scale)
 
 
 class Hexagon:
 
-    def __init__(self, grid: HexagonGrid, x: float, y: float, column: int, row: int, content: frontmatter.Post = None) -> None:
+    def __init__(self, grid: HexagonGrid, x: Decimal, y: Decimal, column: int, row: int,
+                 content: frontmatter.Post = None) -> None:
         self.x = x
         self.y = y
         self.col: int = column
@@ -163,7 +204,10 @@ class Hexagon:
         self.innerPoints = self.__createInnerPoints()
         self.pathPoints = self.__createPathPoints()
         self.icon = None
+        self.zones = []
         if self.content:
+            self.zones = self.content[1].get('zone', []) if isinstance(self.content[1].get('zone', []), List) else [
+                self.content[1].get('zone', [])]
             self.icon = self.content[1].get(
                 'icon', None)
 
@@ -180,8 +224,8 @@ class Hexagon:
         ]]
 
     def __createInnerPoints(self) -> List[Point]:
-        radius = self.grid.radius*0.6
-        radius2 = self.grid.radius2*0.6
+        radius = self.grid.radius * Decimal("0.6")
+        radius2 = self.grid.radius2 * Decimal("0.6")
         return [Point(x, y) for (x, y) in [
             (self.x+radius, self.y),            # E
             (self.x+radius/2, self.y-radius2),  # NE
@@ -194,7 +238,7 @@ class Hexagon:
     def __createPathPoints(self) -> Dict[Cardinal, Point]:
         radius = self.grid.radius
         radius2 = self.grid.radius2
-        dx = radius2*math.cos(pi/6)
+        dx = radius2 * Decimal("0.8660")  # cos(pi/6)
         coords = {
             Cardinal.N: Point(self.x, self.y-radius2),
             Cardinal.NO: Point(self.x-dx, self.y-radius2/2),
@@ -297,7 +341,7 @@ class Hexagon:
                 result += path_t.substitute(type=typeOfPath,
                                             bx=b.x, by=b.y, ex=e.x, ey=e.y, cx=c.x, cy=c.y)
             except:
-                print("Warning: fail compute "+type+" '"+path+"'")
+                print("Warning: fail compute " + str(type) + " '" + path + "'")
 
         return result
 

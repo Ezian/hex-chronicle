@@ -1,18 +1,19 @@
-
 #!/usr/bin/env python3
 
 import argparse
 import glob
-import sys
 import os
 import re
-from string import Template
+import sys
+from collections import defaultdict
+from decimal import *
 from pathlib import Path
+from string import Template
+from typing import Callable, Iterable, List
 
 import frontmatter
 
-from classes.hexagon import Hexagon, HexagonGrid
-
+from classes.hexagon import HexagonGrid, points_to_polygon_coord, Segment, Hexagon, Point
 
 with open('svg_templates/canvas.svg', 'r') as cfile:
     canvas_t = Template(cfile.read())
@@ -32,22 +33,68 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max, css):
        string: svg of the entire canvas, ready for writing to a file.
     """
     # Wider radius of the hexagon
-    radius: float = 100
+    radius: Decimal = Decimal(100)
 
     grid = HexagonGrid(hexes, col_min, col_max, row_min,
                        row_max, radius=radius)
     svgHexes = ''
     svgGrid = ''
     strokewidth = radius/15
-    fontsize = str(2.5*radius)+"%"
+    fontsize = str(Decimal(2.5)*radius)+"%"
     for hex in grid:
         svgHexes += hex.drawContent()
         svgGrid += hex.drawGrid()
+    
+    declared_zones= set([ zone for h in grid for zone in h .zones])
+    with open('svg_templates/polygon.svg', 'r') as cfile:
+        polygon_t = Template(cfile.read())
+    zones =  [ polygon_t.substitute(
+        points=points_to_polygon_coord(polygon),
+        cssClass="zone %s"%(z)) for z in declared_zones for polygon in makeCluster(grid,lambda h : z in h.zones)]
+  
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svgHexes + svgGrid, width=str(grid.width), height=str(grid.height), strokegrid=strokewidth, strokefont=strokewidth/1.5, strokepath=strokewidth*1.2,
+                                 content=svgHexes + svgGrid + "\r\n".join(zones), width=str(grid.width), height=str(grid.height), strokegrid=strokewidth, strokefont=strokewidth/Decimal(1.5), strokepath=strokewidth*Decimal(1.2),
                                  fontsize=fontsize, css=css)
     return canvas
 
+
+def makeCluster(grid: Iterable[Hexagon], cluster_checker: Callable[[Hexagon],bool])-> List[List[Point]]:
+    segments=defaultdict(int)
+    for hex in grid:
+        if cluster_checker(hex):
+            for x in range(0,len(hex.outerPoints)):
+                segment = Segment(hex.outerPoints[(x+1)%len(hex.outerPoints)],hex.outerPoints[x])
+                segments[segment]+=1                    
+    retainedSegments= [k for k , v in segments.items() if v ==1]
+    polygons = []
+    while len(retainedSegments):
+        segment=retainedSegments.pop()
+        chain = [segment.a, segment.b] 
+        while True:
+            newLink = __findConnectingSegment(chain[len(chain)-1],retainedSegments)
+            retainedSegments.remove(newLink)
+            if newLink.a==chain[len(chain)-1]:
+                if newLink.b==chain[0]:
+                    polygons.append(chain)
+                    break
+                else:
+                    chain.append(newLink.b)
+            else:
+
+                if newLink.a==chain[0]:
+                    polygons.append(chain)
+                    break
+                else:
+                    chain.append(newLink.a)
+                
+    return polygons
+            
+
+def __findConnectingSegment(ending,candidates):
+    for i in range(0, len(candidates)):
+        if candidates[i].touches(ending):
+            return candidates[i]
+    raise AssertionError("Can't find a new link")
 
 def parseHexFile(filename):
     """Check an Hexfile, and if it's valide, return a tuple with useful information
