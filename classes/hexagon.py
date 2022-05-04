@@ -5,12 +5,12 @@ Contains the concept of hexagonal grid, with drawing capabilities
 """
 
 import math
-from cmath import pi
 from dataclasses import dataclass
+from decimal import *
 from enum import Enum, auto
 from pathlib import Path
 from string import Template
-from typing import Dict, List
+from typing import List, Dict
 from xml.dom import minidom
 
 import frontmatter
@@ -31,7 +31,7 @@ with open('svg_templates/path.svg', 'r', encoding="utf-8") as cfile:
     path_t = Template(cfile.read())
 
 
-def calc_radius2(radius):
+def calc_radius2(radius: Decimal):
     """Calculate the shortest (inner) radius for the given (outer) hex radius
 
         Args:
@@ -40,7 +40,8 @@ def calc_radius2(radius):
         Returns:
         integer: Inner radius for the given outer radius.
         """
-    return math.sqrt(radius ** 2 - (radius/2) ** 2)
+
+    return (radius ** 2 - (radius / 2) ** 2).sqrt()
 
 
 @dataclass
@@ -53,13 +54,13 @@ class GridBox:
     row_max: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Point:
     """A point on the canevas
     """
     # pylint: disable=invalid-name
-    x: float
-    y: float
+    x: Decimal
+    y: Decimal
 
 
 @dataclass
@@ -68,6 +69,20 @@ class Position:
     """
     col: int
     row: int
+
+@dataclass(eq=False, frozen=True)
+class Segment:
+    a: Point
+    b: Point
+
+    def __eq__(self, other):
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == other.a)
+
+    def __hash__(self):
+        return hash(self.a) + hash(self.b)
+
+    def touches(self, p: Point):
+        return self.a == p or self.b == p
 
 
 def points_to_polygon_coord(points: List[Point]) -> str:
@@ -81,6 +96,7 @@ def points_to_polygon_coord(points: List[Point]) -> str:
     """
     return ' '.join(
         [f"{point.x},{point.y}" for point in points])
+
 
 # Type of terrain
 
@@ -113,9 +129,9 @@ class HexagonGrid:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hexes, grid_box: GridBox,
-                 radius: float = 20) -> None:
-        self.radius: float = radius
-        self.radius2: float = calc_radius2(radius)
+                 radius: Decimal = 20) -> None:
+        self.radius: Decimal = radius
+        self.radius2: Decimal = calc_radius2(radius)
         self.row_min: int = grid_box.row_min
         self.row_max: int = grid_box.row_max
         self.col_min: int = grid_box.col_min
@@ -125,20 +141,32 @@ class HexagonGrid:
                             self.radius2*2*grid_box.row_min +
                             grid_box.col_min % 2*self.radius2 - self.radius2)
         row = self.row_min
-        while row <= self.row_max:
-            col = self.col_min
-            while col <= self.col_max:
-                center = Point(self.radius*1.5*col, self.radius2 *
-                               2*row + col % 2*self.radius2)
-                pos = Position(col, row)
-                self.hexes.append(
-                    Hexagon(self, center,  pos, hexes.get((col, row), None)))
-                col += 1
-            row += 1
+        
+        ## Here, we need to use a high precision decimal context. Otherwise some point that MUST have the same
+        # coordinate do not. This breaks Clustering feature.
+        # The default precision for Decimal is 28, so we must use a precision sufficient to hold this + powers and products
+        # So why not 35 ? 
+        # We also enable Traps, so that this can be quickly detected.
+        with localcontext() as ctx:
+            ctx.traps[FloatOperation] = True
+            ctx.traps[Clamped] = True
+            ctx.traps[Rounded] = True
+            ctx.traps[Inexact] = True
+            ctx.prec = 35
+            while row <= self.row_max:
+                col = self.col_min
+                while col <= self.col_max:
+                    center = Point(self.radius*Decimal("1.5")*col, self.radius2 *
+                                   2*row + col % 2*self.radius2)
+                    pos = Position(col, row)
+                    self.hexes.append(
+                        Hexagon(self, center,  pos, hexes.get((col, row), None)))
+                    col += 1
+                row += 1
         self.width: int = math.ceil(
-            (grid_box.col_max-grid_box.col_min+1)*self.radius*1.5 + self.radius)
+            (grid_box.col_max - grid_box.col_min + 1) * self.radius * Decimal("1.5") + self.radius)
         self.height: int = math.ceil(
-            (grid_box.row_max-grid_box.row_min+1)*self.radius2*2)
+            (grid_box.row_max - grid_box.row_min + 1) * self.radius2 * 2)
         self.icons_dict = self.__compute_icons()
 
     def __compute_icons(self):
@@ -160,11 +188,11 @@ class HexagonGrid:
                     doc = minidom.parseString(icon_file.read())
                     svg_dom = doc.getElementsByTagName("svg")[0]
                     view_box = svg_dom.getAttribute('viewBox')
-                    x_0, y_0, x_1, y_1 = [float(n)
+                    x_0, y_0, x_1, y_1 = [Decimal(n)
                                           for n in view_box.split(' ')]
                     max_box = max(x_1 - x_0, y_1 - y_0)
 
-                    scale = self.radius2/max_box/1.1
+                    scale = self.radius2 / max_box / Decimal(1.1)
                     svg_dom.removeAttribute('viewBox')
                     svg_dom.setAttribute("id", icon)
                     svg_dom.setAttribute("class", "icon "+icon)
@@ -196,7 +224,7 @@ class Icon:
     # pylint: disable=too-few-public-methods
 
     def __init__(self, grid: HexagonGrid, icon_id: str,
-                 origin: Point, scale: float, svg_def: str) -> None:
+                 origin: Point, scale: Decimal, svg_def: str) -> None:
         # pylint: disable=too-many-arguments
         self.grid = grid
         self.icon_id = icon_id
@@ -208,8 +236,8 @@ class Icon:
         """Draw the icon over the hex
 
         Args:
-            tr_x (float): Position x
-            tr_y (float): Position y
+            tr_x (Decimal): Position x
+            tr_y (Decimal): Position y
 
         Returns:
             str: a svg string correctly translated to be drawed over the map
@@ -235,7 +263,10 @@ class Hexagon:
         self.inner_points = self.__create_inner_points()
         self.path_points = self.__create_path_points()
         self.icon = None
+        self.zones = []
         if self.content:
+            self.zones = self.content[1].get('zone', []) if isinstance(self.content[1].get('zone', []), List) else [
+                self.content[1].get('zone', [])]
             self.icon = self.content[1].get(
                 'icon', None)
 
@@ -252,8 +283,8 @@ class Hexagon:
         ]]
 
     def __create_inner_points(self) -> List[Point]:
-        radius = self.grid.radius*0.6
-        radius2 = self.grid.radius2*0.6
+        radius = self.grid.radius * Decimal("0.6")
+        radius2 = self.grid.radius2 * Decimal("0.6")
         return [Point(x, y) for (x, y) in [
             (self.center.x+radius, self.center.y),            # E
             (self.center.x+radius/2, self.center.y-radius2),  # NE
@@ -265,7 +296,7 @@ class Hexagon:
 
     def __create_path_points(self) -> Dict[Cardinal, Point]:
         radius2 = self.grid.radius2
-        cosx = radius2*math.cos(pi/6)
+        cosx = radius2 * Decimal("0.8660")  # cos(pi/6)
         coords = {
             Cardinal.N: Point(self.center.x, self.center.y-radius2),
             Cardinal.NO: Point(self.center.x-cosx, self.center.y-radius2/2),
@@ -370,7 +401,7 @@ class Hexagon:
                                             ex=last.x, ey=last.y,
                                             cx=center.x, cy=center.y)
             except:  # pylint: disable=bare-except
-                print("Warning: fail compute "+type+" '"+path+"'")
+                print("Warning: fail compute " + str(type) + " '" + path + "'")
 
         return result
 
