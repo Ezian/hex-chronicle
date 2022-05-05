@@ -3,22 +3,20 @@
 Generate a nice svg map from a bunch of markdown file with medadata.
 
 """
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 
 import argparse
 import glob
 import os
 import re
 import sys
-from collections import defaultdict
 from decimal import *
 from pathlib import Path
 from string import Template
-from typing import Callable, Iterable, List
 
 import frontmatter
 
-from classes.hexagon import HexagonGrid, points_to_polygon_coord, Segment, Hexagon, Point, GridBox
+from classes.hexagon import HexagonGrid, GridBox
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
@@ -40,65 +38,22 @@ def fill_canvas(hexes, grid_box: GridBox, css):
     grid = HexagonGrid(hexes, grid_box, radius=radius)
     svg_hexes = ''
     svg_grid = ''
-    strokewidth = radius/15
-    fontsize = str(Decimal(2.5)*radius)+"%"
+    strokewidth = radius / 15
+    fontsize = str(Decimal(2.5) * radius) + "%"
     for hexagon in grid:
         svg_hexes += hexagon.draw_content()
         svg_grid += hexagon.draw_grid()
-    
-    declared_zones= set([ zone for h in grid for zone in h .zones])
-    with open('svg_templates/polygon.svg', 'r') as cfile:
-        polygon_t = Template(cfile.read())
-    zones =  [ polygon_t.substitute(
-        points=points_to_polygon_coord(polygon),
-        cssClass="zone %s"%(z)) for z in declared_zones for polygon in makeCluster(grid,lambda h : z in h.zones)]
-  
+
+    clusters = grid.draw_clusters()
+
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svg_hexes + svg_grid + "\r\n".join(zones),
+                                 content=svg_hexes + svg_grid + clusters,
                                  width=str(grid.width), height=str(grid.height),
-                                 strokegrid=strokewidth, strokefont=strokewidth/Decimal("1.5"),
-                                 strokepath=strokewidth*Decimal("1.2"),
+                                 strokegrid=strokewidth, strokefont=strokewidth / Decimal("1.5"),
+                                 strokepath=strokewidth * Decimal("1.2"),
                                  fontsize=fontsize, css=css)
     return canvas
 
-
-def makeCluster(grid: Iterable[Hexagon], cluster_checker: Callable[[Hexagon],bool])-> List[List[Point]]:
-    segments=defaultdict(int)
-    for hex in grid:
-        if cluster_checker(hex):
-            for x in range(0,len(hex.outer_points)):
-                segment = Segment(hex.outer_points[(x+1)%len(hex.outer_points)],hex.outer_points[x])
-                segments[segment]+=1                    
-    retainedSegments= [k for k , v in segments.items() if v ==1]
-    polygons = []
-    while len(retainedSegments):
-        segment=retainedSegments.pop()
-        chain = [segment.a, segment.b] 
-        while True:
-            newLink = __findConnectingSegment(chain[len(chain)-1],retainedSegments)
-            retainedSegments.remove(newLink)
-            if newLink.a==chain[len(chain)-1]:
-                if newLink.b==chain[0]:
-                    polygons.append(chain)
-                    break
-                else:
-                    chain.append(newLink.b)
-            else:
-
-                if newLink.a==chain[0]:
-                    polygons.append(chain)
-                    break
-                else:
-                    chain.append(newLink.a)
-                
-    return polygons
-            
-
-def __findConnectingSegment(ending,candidates):
-    for i in range(0, len(candidates)):
-        if candidates[i].touches(ending):
-            return candidates[i]
-    raise AssertionError("Can't find a new link")
 
 def parse_hex_file(filename):
     """Check an Hexfile, and if it's valide, return a tuple with useful information
@@ -150,8 +105,8 @@ def generate_from_files(hexes, output_path, css):
             row_max = row
 
     output_file = 'hexgrid-cm' + \
-        str(col_min)+'cM'+str(col_max)+'rm' + \
-        str(row_min)+'rM'+str(row_max)+'.svg'
+                  str(col_min) + 'cM' + str(col_max) + 'rm' + \
+                  str(row_min) + 'rM' + str(row_max) + '.svg'
 
     if output_path and Path(output_path).suffix == '.svg':
         output_file = output_path
@@ -161,8 +116,8 @@ def generate_from_files(hexes, output_path, css):
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, GridBox(col_min-1,
-                             col_max+1, row_min-1, row_max+1), css)
+        canvas = fill_canvas(hexes, GridBox(col_min - 1,
+                                            col_max + 1, row_min - 1, row_max + 1), css)
         ofile.write(canvas)
 
 
@@ -170,11 +125,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("src_path", metavar="path", type=str, nargs='*',
                         help="Path to files to be merged; enclose in quotes, accepts * as " +
-                        "wildcard for directories or filenames")
+                             "wildcard for directories or filenames")
     parser.add_argument("--output", type=str, default=None,
                         help="File or directory. If the output end with a .svg extension," +
-                        " it will write the file. Elsewhere, it will put a svg file with " +
-                        "a generated name at the location")
+                             " it will write the file. Elsewhere, it will put a svg file with " +
+                             "a generated name at the location")
     parser.add_argument("--css", type=str, default=None,
                         help="Css file to override default css values")
 
