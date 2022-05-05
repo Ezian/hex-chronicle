@@ -1,3 +1,4 @@
 {
-    "svg.preview.background": "custom"
+    "svg.preview.background": "custom",
+    "python.linting.enabled": true
 }
