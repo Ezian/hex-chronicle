@@ -1,32 +1,32 @@
+"""Hex-chronicle
 
+Generate a nice svg map from a bunch of markdown file with medadata.
+
+"""
 #!/usr/bin/env python3
 
 import argparse
 import glob
-import sys
 import os
 import re
-from string import Template
+import sys
 from pathlib import Path
+from string import Template
 
 import frontmatter
 
-from classes.hexagon import Hexagon, HexagonGrid
+from classes.hexagon import GridBox, HexagonGrid
 
-
-with open('svg_templates/canvas.svg', 'r') as cfile:
+with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
 
 
-def fill_canvas(hexes, col_min, col_max, row_min, row_max, css):
+def fill_canvas(hexes, grid_box: GridBox, css):
     """Main function. Create a canvas of given boundaries and fill it with numbered hexes.
 
     Args:
        hexes (dict): key: tuple (col,row), values: tuple (filename, frontmatter content)
-       col_min (integer): minimal Column ID
-       col_max (integer): maximal Column ID
-       row_min (integer): minimal Row ID
-       row_max (integer): maximal Row ID
+       grid_box (GridBox) : Row/column boundaries
 
     Returns:
        string: svg of the entire canvas, ready for writing to a file.
@@ -34,48 +34,59 @@ def fill_canvas(hexes, col_min, col_max, row_min, row_max, css):
     # Wider radius of the hexagon
     radius: float = 100
 
-    grid = HexagonGrid(hexes, col_min, col_max, row_min,
-                       row_max, radius=radius)
-    svgHexes = ''
-    svgGrid = ''
+    grid = HexagonGrid(hexes, grid_box, radius=radius)
+    svg_hexes = ''
+    svg_grid = ''
     strokewidth = radius/15
     fontsize = str(2.5*radius)+"%"
-    for hex in grid:
-        svgHexes += hex.drawContent()
-        svgGrid += hex.drawGrid()
+    for hexagon in grid:
+        svg_hexes += hexagon.draw_content()
+        svg_grid += hexagon.draw_grid()
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svgHexes + svgGrid, width=str(grid.width), height=str(grid.height), strokegrid=strokewidth, strokefont=strokewidth/1.5, strokepath=strokewidth*1.2,
+                                 content=svg_hexes + svg_grid,
+                                 width=str(grid.width), height=str(grid.height),
+                                 strokegrid=strokewidth, strokefont=strokewidth/1.5,
+                                 strokepath=strokewidth*1.2,
                                  fontsize=fontsize, css=css)
     return canvas
 
 
-def parseHexFile(filename):
+def parse_hex_file(filename):
     """Check an Hexfile, and if it's valide, return a tuple with useful information
 
     Args:
        filename (filepath): the relative or absolute path of the file to pase
 
     Returns:
-       (boolean, int, int, dict): First return indicates if it's a valid file, second and third the x and y position in grid, and the last a bunch of values extracted from the file
+       (boolean, int, int, dict): First return indicates if it's a valid file,
+       second and third the x and y position in grid, and the last a bunch of
+       values extracted from the file
     """
-    error = False, 0, 0, dict()
+    error = False, 0, 0, {}
     # The file must exists
     if not os.path.isfile(filename):
         return error
     # The filename should follow the pattern XXYY-<some_name>.md
     basename = os.path.basename(filename)
-    m = re.match('^(-?\d{2})(-?\d{2})-.*\.md$', basename)
-    if m is None:
+    match = re.match(r'^(-?\d{2})(-?\d{2})-.*\.md$', basename)
+    if match is None:
         return error
 
-    col = int(m.group(2))
-    row = int(m.group(1))
+    col = int(match.group(2))
+    row = int(match.group(1))
 
-    with open(filename) as f:
-        return True, col, row, frontmatter.load(f)
+    with open(filename, 'r', encoding="utf-8") as hex_file:
+        return True, col, row, frontmatter.load(hex_file)
 
 
-def generateFromFiles(hexes, output_path, css):
+def generate_from_files(hexes, output_path, css):
+    """Generate the grid from files
+
+    Args:
+        hexes (dict[col, row]Hexagon): set of hexagons identified by a tuple (col, row)
+        output_path (_type_): The file to write
+        css (_type_): A custom css to insert in the final file
+    """
     # find map boundary
     col_min, col_max = None, None
     row_min, row_max = None, None
@@ -99,25 +110,28 @@ def generateFromFiles(hexes, output_path, css):
     elif output_path:
         output_file = Path(output_path).joinpath(output_file)
 
-    with open(output_file, 'w') as ofile:
+    with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, col_min-1,
-                             col_max+1, row_min-1, row_max+1, css)
+        canvas = fill_canvas(hexes, GridBox(col_min-1,
+                             col_max+1, row_min-1, row_max+1), css)
         ofile.write(canvas)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("src_path", metavar="path", type=str, nargs='*',
-                        help="Path to files to be merged; enclose in quotes, accepts * as wildcard for directories or filenames")
+                        help="Path to files to be merged; enclose in quotes, accepts * as " +
+                        "wildcard for directories or filenames")
     parser.add_argument("--output", type=str, default=None,
-                        help="File or directory. If the output end with a .svg extension, it will write the file. Elsewhere, it will put a svg file with a generated name at the location")
+                        help="File or directory. If the output end with a .svg extension," +
+                        " it will write the file. Elsewhere, it will put a svg file with " +
+                        "a generated name at the location")
     parser.add_argument("--css", type=str, default=None,
                         help="Css file to override default css values")
 
     args = parser.parse_args()
 
-    hexfiles = dict()
+    hexfiles = {}
 
     for arg in args.src_path:
         files = glob.glob(arg)
@@ -125,13 +139,13 @@ if __name__ == "__main__":
         if not files:
             print('File does not exist: ' + arg, file=sys.stderr)
         for file in files:
-            isHexFile, col, row, contents = parseHexFile(file)
+            isHexFile, col_file, row_file, contents = parse_hex_file(file)
             if isHexFile:
-                hexfiles[col, row] = file, contents
-    css = ''
+                hexfiles[col_file, row_file] = file, contents
+    CSS = ''
 
     if args.css and Path(args.css).is_file():
-        with open(args.css, 'r') as cfile:
-            css = cfile.read()
+        with open(args.css, 'r', encoding="utf-8") as cfile:
+            CSS = cfile.read()
 
-    generateFromFiles(hexfiles, args.output, css)
+    generate_from_files(hexfiles, args.output, CSS)
