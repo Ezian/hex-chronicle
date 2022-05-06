@@ -7,7 +7,7 @@ Contains the concept of hexagonal grid, with drawing capabilities
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from decimal import *
+from decimal import Decimal, localcontext, FloatOperation, Clamped, Rounded, Inexact
 from enum import Enum, auto
 from pathlib import Path
 from string import Template
@@ -74,17 +74,29 @@ class Position:
 
 @dataclass(eq=False, frozen=True)
 class Segment:
+    """Segment composed of 2 points. Order of the points do not matter"""
+    # pylint: disable=invalid-name
     a: Point
     b: Point
 
     def __eq__(self, other):
-        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == other.a)
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == 
+                                                             other.a )
 
     def __hash__(self):
         return hash(self.a) + hash(self.b)
 
-    def touches(self, p: Point):
-        return self.a == p or self.b == p
+    def touches(self, point: Point):
+        """
+        Predicates which checks if a point touches a segment (i.e. this point is an edge of the 
+        segment) 
+        Args:
+            point: Point to checkt 
+
+        Returns: True if the point is an edge of the segment, false otherwise.
+
+        """
+        return self.a == point or self.b == point
 
 
 def points_to_polygon_coord(points: List[Point]) -> str:
@@ -125,9 +137,12 @@ class Cardinal(Enum):
         return self.value[1]
 
 
-# Early declaration. Used to break circular dependency between HexagonGrid and Grid
-# which works together.
+
 class Hexagon:
+    """
+    Early declaration. Used to break circular dependency between HexagonGrid and Grid
+    which works together.
+    """
     pass
 
 
@@ -151,9 +166,10 @@ class HexagonGrid:
                             grid_box.col_min % 2 * self.radius2 - self.radius2)
         row = self.row_min
 
-        # Here, we need to use a high precision decimal context. Otherwise some point that MUST have the same
-        # coordinate do not. This breaks Clustering feature.
-        # The default precision for Decimal is 28, so we must use a precision sufficient to handle operations like 
+        # Here, we need to use a high precision decimal context. Otherwise some point that MUST 
+        # have the same coordinate do not. This breaks Clustering feature.
+        # The default precision for Decimal is 28, so we must use a precision sufficient to 
+        # handle operations like 
         # powers, sums and products
         # So why not 35 ? 
         # We also enable Traps, so that this can be quickly detected.
@@ -240,23 +256,24 @@ class HexagonGrid:
 
         # First let's construct all segment around the retained edges
         segments = defaultdict(int)
-        for hex in self:
-            if cluster_checker(hex):
-                for x in range(0, len(hex.outer_points)):
-                    segment = Segment(hex.outer_points[(x + 1) % len(hex.outer_points)], hex.outer_points[x])
+        for hexagon in self:
+            if cluster_checker(hexagon):
+                for x in range(0, len(hexagon.outer_points)):
+                    segment = Segment(hexagon.outer_points[(x + 1) % len(hexagon.outer_points)], hexagon.outer_points[x])
                     segments[segment] += 1
 
-        # Then we remove all segments present more than once (i.e. shared by more than 1 hexagon, thus not on an edge)
+        # Then we remove all segments present more than once (i.e. shared by more than 1 hexagon,
+        # thus not on an edge)
         retained_segments = [k for k, v in segments.items() if v == 1]
         polygons = []
 
         # Build polygons with these segments. 
-        # First let's select one segment, then look in the bag for another one connected to the previous one.
-        # Keep on linking segments as long as we did not complete a loop .
-        # If loop is complete, This is the border of one cluster. We must rerun the algorithm as long as we have 
-        # segments to dry out all clusters (non-contiguous zones)
-        # Beware, while this algorithm is true with hexagon tiling, it is globally false. (It is true iff there is at
-        # most in any vertices no more than 3 distinct edges) 
+        # First let's select one segment, then look in the bag for another one connected to the 
+        # previous one.Keep on linking segments as long as we did not complete a loop .
+        # If loop is complete, This is the border of one cluster. We must rerun the algorithm as 
+        # long as we have segments to dry out all clusters (non-contiguous zones)
+        # Beware, while this algorithm is true with hexagon tiling, it is globally false.
+        # (It is true iff there is at most in any vertices no more than 3 distinct edges) 
         while len(retained_segments):
             segment = retained_segments.pop()
             chain = [segment.a, segment.b]
@@ -288,7 +305,7 @@ class HexagonGrid:
         return ''.join([icon.svg_def for icon in self.icons_dict.values()])
 
     def __iter__(self):
-        ''' Returns the Iterator object '''
+        """ Returns the Iterator object """
         return self.hexes.__iter__()
 
 

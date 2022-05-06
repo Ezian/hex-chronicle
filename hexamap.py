@@ -10,7 +10,7 @@ import glob
 import os
 import re
 import sys
-from decimal import *
+from decimal import Decimal
 from pathlib import Path
 from string import Template
 
@@ -36,11 +36,8 @@ def fill_canvas(hexes, grid_box: GridBox, css):
     radius: Decimal = Decimal(100)
 
     grid = HexagonGrid(hexes, grid_box, radius=radius)
-    svg_hexes = ''
-    svg_grid = ''
     strokewidth = radius / 15
     fontsize = str(Decimal(2.5) * radius) + "%"
-
 
     canvas = canvas_t.substitute(icons=grid.icons(),
                                  content=grid.draw(),
