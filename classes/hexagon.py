@@ -80,23 +80,23 @@ class Segment:
     b: Point
 
     def __eq__(self, other):
-        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == 
-                                                             other.a )
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b ==
+                                                             other.a)
 
     def __hash__(self):
         return hash(self.a) + hash(self.b)
 
     def touches(self, point: Point):
         """
-        Predicates which checks if a point touches a segment (i.e. this point is an edge of the 
-        segment) 
+        Predicates which checks if a point touches a segment (i.e. this point is an edge of the
+        segment)
         Args:
-            point: Point to checkt 
+            point: Point to checkt
 
         Returns: True if the point is an edge of the segment, false otherwise.
 
         """
-        return self.a == point or self.b == point
+        return point in (self.a, self.b)
 
 
 def points_to_polygon_coord(points: List[Point]) -> str:
@@ -137,12 +137,9 @@ class Cardinal(Enum):
         return self.value[1]
 
 
-
+# Skip declaration for now, will declare later
+# pylint: disable=[missing-class-docstring,too-few-public-methods]
 class Hexagon:
-    """
-    Early declaration. Used to break circular dependency between HexagonGrid and Grid
-    which works together.
-    """
     pass
 
 
@@ -166,12 +163,12 @@ class HexagonGrid:
                             grid_box.col_min % 2 * self.radius2 - self.radius2)
         row = self.row_min
 
-        # Here, we need to use a high precision decimal context. Otherwise some point that MUST 
+        # Here, we need to use a high precision decimal context. Otherwise some point that MUST
         # have the same coordinate do not. This breaks Clustering feature.
-        # The default precision for Decimal is 28, so we must use a precision sufficient to 
-        # handle operations like 
+        # The default precision for Decimal is 28, so we must use a precision sufficient to
+        # handle operations like
         # powers, sums and products
-        # So why not 35 ? 
+        # So why not 35 ?
         # We also enable Traps, so that this can be quickly detected.
         with localcontext() as ctx:
             ctx.traps[FloatOperation] = True
@@ -182,7 +179,8 @@ class HexagonGrid:
             while row <= self.row_max:
                 col = self.col_min
                 while col <= self.col_max:
-                    center = Point(self.radius * Decimal("1.5") * col - self.origin.x, self.radius2 *
+                    center = Point(self.radius * Decimal("1.5") * col - self.origin.x,
+                                   self.radius2 *
                                    2 * row + col % 2 * self.radius2 - self.origin.y)
                     pos = Position(col, row)
                     self.hexes.append(
@@ -197,6 +195,11 @@ class HexagonGrid:
         self.icons_dict = self.__compute_icons()
 
     def draw(self):
+        """
+        Create the SVG representation of this grid and hexagons
+        Returns: the SVG string, ready to be written.
+
+        """
         draws = [h.draw_content() for h in self]
         draws += [h.draw_grid() for h in self]
         draws += [self.draw_clusters()]
@@ -239,14 +242,20 @@ class HexagonGrid:
         return result
 
     def draw_clusters(self):
-        declared_zones = set([zone for h in self for zone in h.zones])
+        """
+        Create the SVG representation of clusters edges
+        Returns: the SVG representation of the cluster edges, ready to be written.
+
+        """
+        declared_zones = {zone for h in self for zone in h.zones}
         return "".join([polygon_t.substitute(
             points=points_to_polygon_coord(polygon),
-            cssClass="zone %s" % (z)) for z in declared_zones for polygon in self.make_cluster(lambda h: z in h.zones)])
+            cssClass=f"zone {z}") for z in declared_zones for polygon in
+            self.make_cluster(lambda h, zone=z: zone in h.zones)])
 
     def make_cluster(self, cluster_checker: Callable[[Hexagon], bool]) -> List[List[Point]]:
         """
-        Filters Hexagon of the grid and computes edge point of the cluster(s) border(s).  
+        Filters Hexagon of the grid and computes edge point of the cluster(s) border(s).
         Args:
             cluster_checker: lambda Hexagon ->boolean indicating members of the cluster
 
@@ -258,8 +267,10 @@ class HexagonGrid:
         segments = defaultdict(int)
         for hexagon in self:
             if cluster_checker(hexagon):
-                for x in range(0, len(hexagon.outer_points)):
-                    segment = Segment(hexagon.outer_points[(x + 1) % len(hexagon.outer_points)], hexagon.outer_points[x])
+                # pylint: disable=consider-using-enumerate
+                for i in range(0, len(hexagon.outer_points)):
+                    segment = Segment(hexagon.outer_points[(i + 1) % len(hexagon.outer_points)],
+                                      hexagon.outer_points[i])
                     segments[segment] += 1
 
         # Then we remove all segments present more than once (i.e. shared by more than 1 hexagon,
@@ -267,13 +278,13 @@ class HexagonGrid:
         retained_segments = [k for k, v in segments.items() if v == 1]
         polygons = []
 
-        # Build polygons with these segments. 
-        # First let's select one segment, then look in the bag for another one connected to the 
+        # Build polygons with these segments.
+        # First let's select one segment, then look in the bag for another one connected to the
         # previous one.Keep on linking segments as long as we did not complete a loop .
-        # If loop is complete, This is the border of one cluster. We must rerun the algorithm as 
+        # If loop is complete, This is the border of one cluster. We must rerun the algorithm as
         # long as we have segments to dry out all clusters (non-contiguous zones)
         # Beware, while this algorithm is true with hexagon tiling, it is globally false.
-        # (It is true iff there is at most in any vertices no more than 3 distinct edges) 
+        # (It is true iff there is at most in any vertices no more than 3 distinct edges)
         while len(retained_segments):
             segment = retained_segments.pop()
             chain = [segment.a, segment.b]
@@ -284,15 +295,15 @@ class HexagonGrid:
                     if new_link.b == chain[0]:
                         polygons.append(chain)
                         break
-                    else:
-                        chain.append(new_link.b)
+
+                    chain.append(new_link.b)
                 else:
 
                     if new_link.a == chain[0]:
                         polygons.append(chain)
                         break
-                    else:
-                        chain.append(new_link.a)
+
+                    chain.append(new_link.a)
 
         return polygons
 
@@ -339,6 +350,7 @@ class Icon:
                                  scale=self.scale)
 
 
+# pylint: disable=function-redefined
 class Hexagon:
     """Represents an hexagon, with its zone and some data used to draw everything
     """
@@ -357,7 +369,8 @@ class Hexagon:
         self.icon = None
         self.zones = []
         if self.content:
-            self.zones = self.content[1].get('zone', []) if isinstance(self.content[1].get('zone', []), List) else [
+            self.zones = self.content[1].get('zone', []) if isinstance(
+                self.content[1].get('zone', []), List) else [
                 self.content[1].get('zone', [])]
             self.icon = self.content[1].get(
                 'icon', None)
