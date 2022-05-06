@@ -180,6 +180,12 @@ class HexagonGrid:
             (grid_box.row_max - grid_box.row_min + 1) * self.radius2 * 2)
         self.icons_dict = self.__compute_icons()
 
+    def draw(self):
+        draws = [h.draw_content() for h in self]
+        draws += [h.draw_grid() for h in self]
+        draws += [self.draw_clusters()]
+        return "\n".join(draws)
+
     def __compute_icons(self):
         # pylint: disable=too-many-locals
         result = {}
@@ -239,7 +245,7 @@ class HexagonGrid:
                 for x in range(0, len(hex.outer_points)):
                     segment = Segment(hex.outer_points[(x + 1) % len(hex.outer_points)], hex.outer_points[x])
                     segments[segment] += 1
-                    
+
         # Then we remove all segments present more than once (i.e. shared by more than 1 hexagon, thus not on an edge)
         retained_segments = [k for k, v in segments.items() if v == 1]
         polygons = []

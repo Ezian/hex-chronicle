@@ -40,14 +40,10 @@ def fill_canvas(hexes, grid_box: GridBox, css):
     svg_grid = ''
     strokewidth = radius / 15
     fontsize = str(Decimal(2.5) * radius) + "%"
-    for hexagon in grid:
-        svg_hexes += hexagon.draw_content()
-        svg_grid += hexagon.draw_grid()
 
-    clusters = grid.draw_clusters()
 
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svg_hexes + svg_grid + clusters,
+                                 content=grid.draw(),
                                  width=str(grid.width), height=str(grid.height),
                                  strokegrid=strokewidth, strokefont=strokewidth / Decimal("1.5"),
                                  strokepath=strokewidth * Decimal("1.2"),
