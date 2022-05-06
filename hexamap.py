@@ -100,21 +100,25 @@ def generate_from_files(hexes, output_path, css):
         if row_max is None or row_max < row:
             row_max = row
 
-    output_file = 'hexgrid-cm' + \
-        str(col_min)+'cM'+str(col_max)+'rm' + \
-        str(row_min)+'rM'+str(row_max)+'.svg'
+    output_file = None
 
     if output_path and Path(output_path).suffix == '.svg':
         output_file = output_path
 
     elif output_path:
+        output_file = 'hexgrid-cm' + \
+            str(col_min)+'cM'+str(col_max)+'rm' + \
+            str(row_min)+'rM'+str(row_max)+'.svg'
         output_file = Path(output_path).joinpath(output_file)
 
-    with open(output_file, 'w', encoding="utf-8") as ofile:
-        # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, GridBox(col_min-1,
-                             col_max+1, row_min-1, row_max+1), css)
-        ofile.write(canvas)
+    # Generating canevas with empty hexes around boundaries
+    canvas = fill_canvas(hexes, GridBox(col_min-1,
+                                        col_max+1, row_min-1, row_max+1), css)
+    if output_file:
+        with open(output_file, 'w', encoding="utf-8") as ofile:
+            ofile.write(canvas)
+    else:
+        print(canvas)
 
 
 if __name__ == "__main__":
@@ -124,8 +128,9 @@ if __name__ == "__main__":
                         "wildcard for directories or filenames")
     parser.add_argument("--output", type=str, default=None,
                         help="File or directory. If the output end with a .svg extension," +
-                        " it will write the file. Elsewhere, it will put a svg file with " +
-                        "a generated name at the location")
+                        " it will write the file, else it will write a svg file with a" +
+                        " computed name in the directory." +
+                        " Elsewhere, it will write in standard output.")
     parser.add_argument("--css", type=str, default=None,
                         help="Css file to override default css values")
 
