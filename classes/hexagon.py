@@ -128,8 +128,8 @@ class HexagonGrid:
         while row <= self.row_max:
             col = self.col_min
             while col <= self.col_max:
-                center = Point(self.radius*1.5*col, self.radius2 *
-                               2*row + col % 2*self.radius2)
+                center = Point(self.radius*1.5*col - self.origin.x, self.radius2 *
+                               2*row + col % 2*self.radius2 - self.origin.y)
                 pos = Position(col, row)
                 self.hexes.append(
                     Hexagon(self, center,  pos, hexes.get((col, row), None)))
