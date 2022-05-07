@@ -5,12 +5,13 @@ Contains the concept of hexagonal grid, with drawing capabilities
 """
 
 import math
-from cmath import pi
+from collections import defaultdict
 from dataclasses import dataclass
+from decimal import Decimal, localcontext, FloatOperation, Clamped, Rounded, Inexact
 from enum import Enum, auto
 from pathlib import Path
 from string import Template
-from typing import Dict, List
+from typing import List, Dict, Callable
 from xml.dom import minidom
 
 import frontmatter
@@ -31,7 +32,7 @@ with open('svg_templates/path.svg', 'r', encoding="utf-8") as cfile:
     path_t = Template(cfile.read())
 
 
-def calc_radius2(radius):
+def calc_radius2(radius: Decimal):
     """Calculate the shortest (inner) radius for the given (outer) hex radius
 
         Args:
@@ -40,7 +41,8 @@ def calc_radius2(radius):
         Returns:
         integer: Inner radius for the given outer radius.
         """
-    return math.sqrt(radius ** 2 - (radius/2) ** 2)
+
+    return (radius ** 2 - (radius / 2) ** 2).sqrt()
 
 
 @dataclass
@@ -53,21 +55,48 @@ class GridBox:
     row_max: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Point:
     """A point on the canevas
     """
     # pylint: disable=invalid-name
-    x: float
-    y: float
+    x: Decimal
+    y: Decimal
 
 
-@dataclass
+@dataclass(frozen=True)
 class Position:
     """A position in the grid
     """
     col: int
     row: int
+
+
+@dataclass(eq=False, frozen=True)
+class Segment:
+    """Segment composed of 2 points. Order of the points do not matter"""
+    # pylint: disable=invalid-name
+    a: Point
+    b: Point
+
+    def __eq__(self, other):
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b ==
+                                                             other.a)
+
+    def __hash__(self):
+        return hash(self.a) + hash(self.b)
+
+    def touches(self, point: Point):
+        """
+        Predicates which checks if a point touches a segment (i.e. this point is an edge of the
+        segment)
+        Args:
+            point: Point to checkt
+
+        Returns: True if the point is an edge of the segment, false otherwise.
+
+        """
+        return point in (self.a, self.b)
 
 
 def points_to_polygon_coord(points: List[Point]) -> str:
@@ -81,6 +110,7 @@ def points_to_polygon_coord(points: List[Point]) -> str:
     """
     return ' '.join(
         [f"{point.x},{point.y}" for point in points])
+
 
 # Type of terrain
 
@@ -107,39 +137,73 @@ class Cardinal(Enum):
         return self.value[1]
 
 
+# Skip declaration for now, will declare later
+# pylint: disable=[missing-class-docstring,too-few-public-methods]
+class Hexagon:
+    pass
+
+
 class HexagonGrid:
     """Hexagonal grid, which can be drawed as a SVG file
     """
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hexes, grid_box: GridBox,
-                 radius: float = 20) -> None:
-        self.radius: float = radius
-        self.radius2: float = calc_radius2(radius)
+                 radius: Decimal = 20) -> None:
+        self.radius: Decimal = radius
+        self.radius2: Decimal = calc_radius2(radius)
         self.row_min: int = grid_box.row_min
         self.row_max: int = grid_box.row_max
         self.col_min: int = grid_box.col_min
         self.col_max: int = grid_box.col_max
         self.hexes: List[Hexagon] = []
-        self.origin = Point(self.radius*grid_box.col_min,
-                            self.radius2*2*grid_box.row_min +
-                            grid_box.col_min % 2*self.radius2 - self.radius2)
+        self.origin = Point(self.radius * grid_box.col_min,
+                            self.radius2 * 2 * grid_box.row_min +
+                            grid_box.col_min % 2 * self.radius2 - self.radius2)
         row = self.row_min
-        while row <= self.row_max:
-            col = self.col_min
-            while col <= self.col_max:
-                center = Point(self.radius*1.5*col - self.origin.x, self.radius2 *
-                               2*row + col % 2*self.radius2 - self.origin.y)
-                pos = Position(col, row)
-                self.hexes.append(
-                    Hexagon(self, center,  pos, hexes.get((col, row), None)))
-                col += 1
-            row += 1
+
+        # Here, we need to use a high precision decimal context. Otherwise some point that MUST
+        # have the same coordinate do not. This breaks Clustering feature.
+        # The default precision for Decimal is 28, so we must use a precision sufficient to
+        # handle operations like
+        # powers, sums and products
+        # So why not 35 ?
+        # We also enable Traps, so that this can be quickly detected.
+        with localcontext() as ctx:
+            ctx.traps[FloatOperation] = True
+            ctx.traps[Clamped] = True
+            ctx.traps[Rounded] = True
+            ctx.traps[Inexact] = True
+            ctx.prec = 35
+            while row <= self.row_max:
+                col = self.col_min
+                while col <= self.col_max:
+                    center = Point(self.radius * Decimal("1.5") * col - self.origin.x,
+                                   self.radius2 *
+                                   2 * row + col % 2 * self.radius2 - self.origin.y)
+                    pos = Position(col, row)
+                    self.hexes.append(
+                        Hexagon(self, center, pos, hexes.get((col, row), None)))
+                    col += 1
+                row += 1
+
         self.width: int = math.ceil(
-            (grid_box.col_max-grid_box.col_min+1)*self.radius*1.5 + self.radius)
+            (grid_box.col_max - grid_box.col_min + 1) * self.radius * Decimal("1.5") + self.radius)
         self.height: int = math.ceil(
-            (grid_box.row_max-grid_box.row_min+1)*self.radius2*2)
+            (grid_box.row_max - grid_box.row_min + 1) * self.radius2 * 2)
         self.icons_dict = self.__compute_icons()
+
+    def draw(self):
+        """
+        Create the SVG representation of this grid and hexagons
+        Returns: the SVG string, ready to be written.
+
+        """
+        draws = [h.draw_content() for h in self]
+        draws += [h.draw_grid() for h in self]
+        draws += [self.draw_clusters()]
+        return "\n".join(draws)
 
     def __compute_icons(self):
         # pylint: disable=too-many-locals
@@ -150,7 +214,7 @@ class HexagonGrid:
                 continue
 
             icon_path = Path(
-                'svg_templates/icons/building').joinpath(icon+".svg")
+                'svg_templates/icons/building').joinpath(icon + ".svg")
             if not icon_path.is_file():
                 continue
 
@@ -160,15 +224,15 @@ class HexagonGrid:
                     doc = minidom.parseString(icon_file.read())
                     svg_dom = doc.getElementsByTagName("svg")[0]
                     view_box = svg_dom.getAttribute('viewBox')
-                    x_0, y_0, x_1, y_1 = [float(n)
+                    x_0, y_0, x_1, y_1 = [Decimal(n)
                                           for n in view_box.split(' ')]
                     max_box = max(x_1 - x_0, y_1 - y_0)
 
-                    scale = self.radius2/max_box/1.1
+                    scale = self.radius2 / max_box / Decimal(1.1)
                     svg_dom.removeAttribute('viewBox')
                     svg_dom.setAttribute("id", icon)
-                    svg_dom.setAttribute("class", "icon "+icon)
-                    origin = Point(scale*(x_1 - x_0)/2, scale*(y_1 - y_0)/2)
+                    svg_dom.setAttribute("class", "icon " + icon)
+                    origin = Point(scale * (x_1 - x_0) / 2, scale * (y_1 - y_0) / 2)
                     result[icon] = Icon(
                         self, icon, origin, scale, svg_dom.toxml())
                 except:  # pylint: disable=bare-except
@@ -176,6 +240,72 @@ class HexagonGrid:
                     continue
 
         return result
+
+    def draw_clusters(self):
+        """
+        Create the SVG representation of clusters edges
+        Returns: the SVG representation of the cluster edges, ready to be written.
+
+        """
+        declared_zones = {zone for h in self for zone in h.zones}
+        return "".join([polygon_t.substitute(
+            points=points_to_polygon_coord(polygon),
+            cssClass=f"zone {z}") for z in declared_zones for polygon in
+            self.make_cluster(lambda h, zone=z: zone in h.zones)])
+
+    def make_cluster(self, cluster_checker: Callable[[Hexagon], bool]) -> List[List[Point]]:
+        """
+        Filters Hexagon of the grid and computes edge point of the cluster(s) border(s).
+        Args:
+            cluster_checker: lambda Hexagon ->boolean indicating members of the cluster
+
+        Returns: One or several Point lists representing cluster(s) border(s).
+
+        """
+
+        # First let's construct all segment around the retained edges
+        segments = defaultdict(int)
+        for hexagon in self:
+            if cluster_checker(hexagon):
+                # pylint: disable=consider-using-enumerate
+                for i in range(0, len(hexagon.outer_points)):
+                    segment = Segment(hexagon.outer_points[(i + 1) % len(hexagon.outer_points)],
+                                      hexagon.outer_points[i])
+                    segments[segment] += 1
+
+        # Then we remove all segments present more than once (i.e. shared by more than 1 hexagon,
+        # thus not on an edge)
+        retained_segments = [k for k, v in segments.items() if v == 1]
+        polygons = []
+
+        # Build polygons with these segments.
+        # First let's select one segment, then look in the bag for another one connected to the
+        # previous one.Keep on linking segments as long as we did not complete a loop .
+        # If loop is complete, This is the border of one cluster. We must rerun the algorithm as
+        # long as we have segments to dry out all clusters (non-contiguous zones)
+        # Beware, while this algorithm is true with hexagon tiling, it is globally false.
+        # (It is true iff there is at most in any vertices no more than 3 distinct edges)
+        while len(retained_segments):
+            segment = retained_segments.pop()
+            chain = [segment.a, segment.b]
+            while True:
+                new_link = [s for s in retained_segments if s.touches(chain[- 1])][0]
+                retained_segments.remove(new_link)
+                if new_link.a == chain[len(chain) - 1]:
+                    if new_link.b == chain[0]:
+                        polygons.append(chain)
+                        break
+
+                    chain.append(new_link.b)
+                else:
+
+                    if new_link.a == chain[0]:
+                        polygons.append(chain)
+                        break
+
+                    chain.append(new_link.a)
+
+        return polygons
 
     def icons(self) -> str:
         """List all existing icons to add it as def in svg
@@ -186,17 +316,18 @@ class HexagonGrid:
         return ''.join([icon.svg_def for icon in self.icons_dict.values()])
 
     def __iter__(self):
-        ''' Returns the Iterator object '''
+        """ Returns the Iterator object """
         return self.hexes.__iter__()
 
 
 class Icon:
     """Draw an icon over the map
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self, grid: HexagonGrid, icon_id: str,
-                 origin: Point, scale: float, svg_def: str) -> None:
+                 origin: Point, scale: Decimal, svg_def: str) -> None:
         # pylint: disable=too-many-arguments
         self.grid = grid
         self.icon_id = icon_id
@@ -208,21 +339,22 @@ class Icon:
         """Draw the icon over the hex
 
         Args:
-            tr_x (float): Position x
-            tr_y (float): Position y
+            translate_to (Decimal): offset where to translate the icon
 
         Returns:
             str: a svg string correctly translated to be drawed over the map
         """
         return icon_t.substitute(id=self.icon_id,
-                                 tx=translate_to.x-self.origin.x,
-                                 ty=translate_to.y-self.origin.y,
+                                 tx=translate_to.x - self.origin.x,
+                                 ty=translate_to.y - self.origin.y,
                                  scale=self.scale)
 
 
+# pylint: disable=function-redefined
 class Hexagon:
     """Represents an hexagon, with its zone and some data used to draw everything
     """
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, grid: HexagonGrid, center: Point,
@@ -235,7 +367,11 @@ class Hexagon:
         self.inner_points = self.__create_inner_points()
         self.path_points = self.__create_path_points()
         self.icon = None
+        self.zones = []
         if self.content:
+            self.zones = self.content[1].get('zone', []) if isinstance(
+                self.content[1].get('zone', []), List) else [
+                self.content[1].get('zone', [])]
             self.icon = self.content[1].get(
                 'icon', None)
 
@@ -243,36 +379,36 @@ class Hexagon:
         radius = self.grid.radius
         radius2 = self.grid.radius2
         return [Point(x, y) for (x, y) in [
-            (self.center.x+radius, self.center.y),            # E
-            (self.center.x+radius/2, self.center.y-radius2),  # NE
-            (self.center.x-radius/2, self.center.y-radius2),  # NO
-            (self.center.x-radius, self.center.y),            # O
-            (self.center.x-radius/2, self.center.y+radius2),  # SO
-            (self.center.x+radius/2, self.center.y+radius2),  # SE
+            (self.center.x + radius, self.center.y),  # E
+            (self.center.x + radius / 2, self.center.y - radius2),  # NE
+            (self.center.x - radius / 2, self.center.y - radius2),  # NO
+            (self.center.x - radius, self.center.y),  # O
+            (self.center.x - radius / 2, self.center.y + radius2),  # SO
+            (self.center.x + radius / 2, self.center.y + radius2),  # SE
         ]]
 
     def __create_inner_points(self) -> List[Point]:
-        radius = self.grid.radius*0.6
-        radius2 = self.grid.radius2*0.6
+        radius = self.grid.radius * Decimal("0.6")
+        radius2 = self.grid.radius2 * Decimal("0.6")
         return [Point(x, y) for (x, y) in [
-            (self.center.x+radius, self.center.y),            # E
-            (self.center.x+radius/2, self.center.y-radius2),  # NE
-            (self.center.x-radius/2, self.center.y-radius2),  # NO
-            (self.center.x-radius, self.center.y),            # O
-            (self.center.x-radius/2, self.center.y+radius2),  # SO
-            (self.center.x+radius/2, self.center.y+radius2),  # SE
+            (self.center.x + radius, self.center.y),  # E
+            (self.center.x + radius / 2, self.center.y - radius2),  # NE
+            (self.center.x - radius / 2, self.center.y - radius2),  # NO
+            (self.center.x - radius, self.center.y),  # O
+            (self.center.x - radius / 2, self.center.y + radius2),  # SO
+            (self.center.x + radius / 2, self.center.y + radius2),  # SE
         ]]
 
     def __create_path_points(self) -> Dict[Cardinal, Point]:
         radius2 = self.grid.radius2
-        cosx = radius2*math.cos(pi/6)
+        cosx = radius2 * Decimal("0.8660")  # cos(pi/6)
         coords = {
-            Cardinal.N: Point(self.center.x, self.center.y-radius2),
-            Cardinal.NO: Point(self.center.x-cosx, self.center.y-radius2/2),
-            Cardinal.NE: Point(self.center.x+cosx, self.center.y-radius2/2),
-            Cardinal.S: Point(self.center.x, self.center.y+radius2),
-            Cardinal.SO: Point(self.center.x-cosx, self.center.y+radius2/2),
-            Cardinal.SE: Point(self.center.x+cosx, self.center.y+radius2/2),
+            Cardinal.N: Point(self.center.x, self.center.y - radius2),
+            Cardinal.NO: Point(self.center.x - cosx, self.center.y - radius2 / 2),
+            Cardinal.NE: Point(self.center.x + cosx, self.center.y - radius2 / 2),
+            Cardinal.S: Point(self.center.x, self.center.y + radius2),
+            Cardinal.SO: Point(self.center.x - cosx, self.center.y + radius2 / 2),
+            Cardinal.SE: Point(self.center.x + cosx, self.center.y + radius2 / 2),
             Cardinal.C: Point(self.center.x, self.center.y),
         }
         return coords
@@ -285,8 +421,8 @@ class Hexagon:
         """
         # Required variables
         radius = self.grid.radius
-        left = (self.center.x-radius/2)
-        top = (self.center.y-radius/2)
+        left = (self.center.x - radius / 2)
+        top = (self.center.y - radius / 2)
 
         # Number
         number_svg = number_t.substitute(
@@ -370,7 +506,7 @@ class Hexagon:
                                             ex=last.x, ey=last.y,
                                             cx=center.x, cy=center.y)
             except:  # pylint: disable=bare-except
-                print("Warning: fail compute "+type+" '"+path+"'")
+                print("Warning: fail compute " + str(type) + " '" + path + "'")
 
         return result
 

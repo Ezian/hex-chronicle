@@ -3,19 +3,20 @@
 Generate a nice svg map from a bunch of markdown file with medadata.
 
 """
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 
 import argparse
 import glob
 import os
 import re
 import sys
+from decimal import Decimal
 from pathlib import Path
 from string import Template
 
 import frontmatter
 
-from classes.hexagon import GridBox, HexagonGrid
+from classes.hexagon import HexagonGrid, GridBox
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
@@ -32,21 +33,17 @@ def fill_canvas(hexes, grid_box: GridBox, css):
        string: svg of the entire canvas, ready for writing to a file.
     """
     # Wider radius of the hexagon
-    radius: float = 100
+    radius: Decimal = Decimal(100)
 
     grid = HexagonGrid(hexes, grid_box, radius=radius)
-    svg_hexes = ''
-    svg_grid = ''
-    strokewidth = radius/15
-    fontsize = str(2.5*radius)+"%"
-    for hexagon in grid:
-        svg_hexes += hexagon.draw_content()
-        svg_grid += hexagon.draw_grid()
+    strokewidth = radius / 15
+    fontsize = str(Decimal(2.5) * radius) + "%"
+
     canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=svg_hexes + svg_grid,
+                                 content=grid.draw(),
                                  width=str(grid.width), height=str(grid.height),
-                                 strokegrid=strokewidth, strokefont=strokewidth/1.5,
-                                 strokepath=strokewidth*1.2,
+                                 strokegrid=strokewidth, strokefont=strokewidth / Decimal("1.5"),
+                                 strokepath=strokewidth * Decimal("1.2"),
                                  fontsize=fontsize, css=css)
     return canvas
 
@@ -101,8 +98,8 @@ def generate_from_files(hexes, output_path, css):
             row_max = row
 
     output_file = 'hexgrid-cm' + \
-        str(col_min)+'cM'+str(col_max)+'rm' + \
-        str(row_min)+'rM'+str(row_max)+'.svg'
+                  str(col_min) + 'cM' + str(col_max) + 'rm' + \
+                  str(row_min) + 'rM' + str(row_max) + '.svg'
 
     if output_path and Path(output_path).suffix == '.svg':
         output_file = output_path
@@ -112,8 +109,8 @@ def generate_from_files(hexes, output_path, css):
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, GridBox(col_min-1,
-                             col_max+1, row_min-1, row_max+1), css)
+        canvas = fill_canvas(hexes, GridBox(col_min - 1,
+                                            col_max + 1, row_min - 1, row_max + 1), css)
         ofile.write(canvas)
 
 
@@ -121,11 +118,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("src_path", metavar="path", type=str, nargs='*',
                         help="Path to files to be merged; enclose in quotes, accepts * as " +
-                        "wildcard for directories or filenames")
+                             "wildcard for directories or filenames")
     parser.add_argument("--output", type=str, default=None,
                         help="File or directory. If the output end with a .svg extension," +
-                        " it will write the file. Elsewhere, it will put a svg file with " +
-                        "a generated name at the location")
+                             " it will write the file. Elsewhere, it will put a svg file with " +
+                             "a generated name at the location")
     parser.add_argument("--css", type=str, default=None,
                         help="Css file to override default css values")
 
