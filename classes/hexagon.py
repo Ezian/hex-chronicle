@@ -158,7 +158,8 @@ class HexagonGrid:
         self.col_min: int = grid_box.col_min
         self.col_max: int = grid_box.col_max
         self.hexes: List[Hexagon] = []
-        self.origin = Point(self.radius * grid_box.col_min,
+        self.origin = Point(self.radius * Decimal("1.5") * grid_box.col_min - 2*self.radius +
+                            grid_box.row_min % 2 * self.radius,
                             self.radius2 * 2 * grid_box.row_min +
                             grid_box.col_min % 2 * self.radius2 - self.radius2)
         row = self.row_min
@@ -188,10 +189,12 @@ class HexagonGrid:
                     col += 1
                 row += 1
 
+        hex_width = grid_box.col_max - grid_box.col_min + 1
+        hex_height = grid_box.row_max - grid_box.row_min + 1
         self.width: int = math.ceil(
-            (grid_box.col_max - grid_box.col_min + 1) * self.radius * Decimal("1.5") + self.radius)
+            (hex_width + hex_width % 2) * self.radius * Decimal("1.5") + self.radius)
         self.height: int = math.ceil(
-            (grid_box.row_max - grid_box.row_min + 1) * self.radius2 * 2)
+            (hex_height + hex_height % 2) * self.radius2 * 2)
         self.icons_dict = self.__compute_icons()
 
     def draw(self):
@@ -232,7 +235,8 @@ class HexagonGrid:
                     svg_dom.removeAttribute('viewBox')
                     svg_dom.setAttribute("id", icon)
                     svg_dom.setAttribute("class", "icon " + icon)
-                    origin = Point(scale * (x_1 - x_0) / 2, scale * (y_1 - y_0) / 2)
+                    origin = Point(scale * (x_1 - x_0) / 2,
+                                   scale * (y_1 - y_0) / 2)
                     result[icon] = Icon(
                         self, icon, origin, scale, svg_dom.toxml())
                 except:  # pylint: disable=bare-except
@@ -289,7 +293,8 @@ class HexagonGrid:
             segment = retained_segments.pop()
             chain = [segment.a, segment.b]
             while True:
-                new_link = [s for s in retained_segments if s.touches(chain[- 1])][0]
+                new_link = [
+                    s for s in retained_segments if s.touches(chain[- 1])][0]
                 retained_segments.remove(new_link)
                 if new_link.a == chain[len(chain) - 1]:
                     if new_link.b == chain[0]:
