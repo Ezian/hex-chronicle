@@ -7,11 +7,12 @@ Contains the concept of hexagonal grid, with drawing capabilities
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from decimal import Decimal, localcontext, FloatOperation, Clamped, Rounded, Inexact
+from decimal import (Clamped, Decimal, FloatOperation, Inexact, Rounded,
+                     localcontext)
 from enum import Enum, EnumMeta, auto
 from pathlib import Path
 from string import Template
-from typing import List, Dict, Callable
+from typing import Callable, Dict, List
 from xml.dom import minidom
 
 import frontmatter
