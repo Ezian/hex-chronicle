@@ -4,7 +4,7 @@ terrain:
     mixed:
         - type: sea
           sides:
-            - "NO"
+            - NW
             - "N"
 alt: Fortin
 icon: fortin
