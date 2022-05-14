@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal, localcontext, FloatOperation, Clamped, Rounded, Inexact
-from enum import Enum, auto
+from enum import Enum, EnumMeta, auto
 from pathlib import Path
 from string import Template
 from typing import List, Dict, Callable
@@ -114,15 +114,28 @@ def points_to_polygon_coord(points: List[Point]) -> str:
 
 # Type of terrain
 
+class CardinalEnumMeta(EnumMeta):
+    """ Metaclass to replace Ouest by West and handle yaml no as North West instead of false
 
-class Cardinal(Enum):
+    Args:
+        EnumMeta (Class): class enumeration
+    """
+
+    def __getitem__(cls, name):
+        if isinstance(str, bool) and not str:
+            return Cardinal.NW  # Handle NO value from yml
+        name = name.upper().replace('O', 'W')
+        return super().__getitem__(name)
+
+
+class Cardinal(Enum, metaclass=CardinalEnumMeta):
     """Cardinal point, used to identify zones and point
     """
     # the second element of tuple allow to get the id of a point in inner and outerpoint
     N = (auto(), None)
-    NO = (auto(), 2)
-    O = (auto(), 3)
-    SO = (auto(), 4)
+    NW = (auto(), 2)
+    W = (auto(), 3)
+    SW = (auto(), 4)
     S = (auto(), None)
     SE = (auto(), 5)
     E = (auto(), 0)
@@ -409,10 +422,10 @@ class Hexagon:
         cosx = radius2 * Decimal("0.8660")  # cos(pi/6)
         coords = {
             Cardinal.N: Point(self.center.x, self.center.y - radius2),
-            Cardinal.NO: Point(self.center.x - cosx, self.center.y - radius2 / 2),
+            Cardinal.NW: Point(self.center.x - cosx, self.center.y - radius2 / 2),
             Cardinal.NE: Point(self.center.x + cosx, self.center.y - radius2 / 2),
             Cardinal.S: Point(self.center.x, self.center.y + radius2),
-            Cardinal.SO: Point(self.center.x - cosx, self.center.y + radius2 / 2),
+            Cardinal.SW: Point(self.center.x - cosx, self.center.y + radius2 / 2),
             Cardinal.SE: Point(self.center.x + cosx, self.center.y + radius2 / 2),
             Cardinal.C: Point(self.center.x, self.center.y),
         }
@@ -503,8 +516,10 @@ class Hexagon:
 
         for path in paths:
             try:
-                first, last = [self.path_points[Cardinal[k.upper()]]
-                               for k in path.split()]
+                first, last = [self.path_points[
+                    Cardinal[k]
+                ]
+                    for k in path.split()]
                 center = self.path_points[Cardinal.C]
                 result += path_t.substitute(type=type_of_path,
                                             bx=first.x, by=first.y,
@@ -529,13 +544,13 @@ class Hexagon:
         for side in sides:
             card = None
             try:
-                card = Cardinal[side.upper()]
+                card = Cardinal[side]
             except KeyError:
                 pass  # do nothing
             if card is Cardinal.N:
                 result.append([
                     self.pin(Cardinal.NE), self.pin(
-                        Cardinal.NO), self.pout(Cardinal.NO), self.pout(Cardinal.NE),
+                        Cardinal.NW), self.pout(Cardinal.NW), self.pout(Cardinal.NE),
                 ])
             if card is Cardinal.NE:
                 result.append([
@@ -550,17 +565,17 @@ class Hexagon:
             if card is Cardinal.S:
                 result.append([
                     self.pin(Cardinal.SE), self.pin(
-                        Cardinal.SO), self.pout(Cardinal.SO), self.pout(Cardinal.SE),
+                        Cardinal.SW), self.pout(Cardinal.SW), self.pout(Cardinal.SE),
                 ])
-            if card is Cardinal.SO:
+            if card is Cardinal.SW:
                 result.append([
-                    self.pin(Cardinal.O), self.pin(
-                        Cardinal.SO), self.pout(Cardinal.SO), self.pout(Cardinal.O),
+                    self.pin(Cardinal.W), self.pin(
+                        Cardinal.SW), self.pout(Cardinal.SW), self.pout(Cardinal.W),
                 ])
-            if card is Cardinal.NO:
+            if card is Cardinal.NW:
                 result.append([
-                    self.pin(Cardinal.O), self.pin(
-                        Cardinal.NO), self.pout(Cardinal.NO), self.pout(Cardinal.O),
+                    self.pin(Cardinal.W), self.pin(
+                        Cardinal.NW), self.pout(Cardinal.NW), self.pout(Cardinal.W),
                 ])
             if card is Cardinal.C:
                 result.append(self.inner_points)
