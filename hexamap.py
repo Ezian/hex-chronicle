@@ -13,16 +13,18 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 from string import Template
+from typing import List
 
 import frontmatter
 
-from classes.hexagon import HexagonGrid, GridBox
+from classes.hexagon import GridBox, HexagonGrid
+from classes.tilemetadata import TileMetadata
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
 
 
-def fill_canvas(hexes, grid_box: GridBox, css):
+def fill_canvas(hexes: List[TileMetadata], grid_box: GridBox, css: str):
     """Main function. Create a canvas of given boundaries and fill it with numbered hexes.
 
     Args:
@@ -42,41 +44,14 @@ def fill_canvas(hexes, grid_box: GridBox, css):
     canvas = canvas_t.substitute(icons=grid.icons(),
                                  content=grid.draw(),
                                  width=str(grid.width), height=str(grid.height),
-                                 strokegrid=strokewidth, strokefont=strokewidth / Decimal("1.5"),
+                                 strokegrid=strokewidth, strokefont=strokewidth /
+                                 Decimal("1.5"),
                                  strokepath=strokewidth * Decimal("1.2"),
                                  fontsize=fontsize, css=css)
     return canvas
 
 
-def parse_hex_file(filename):
-    """Check an Hexfile, and if it's valide, return a tuple with useful information
-
-    Args:
-       filename (filepath): the relative or absolute path of the file to pase
-
-    Returns:
-       (boolean, int, int, dict): First return indicates if it's a valid file,
-       second and third the x and y position in grid, and the last a bunch of
-       values extracted from the file
-    """
-    error = False, 0, 0, {}
-    # The file must exists
-    if not os.path.isfile(filename):
-        return error
-    # The filename should follow the pattern XXYY-<some_name>.md
-    basename = os.path.basename(filename)
-    match = re.match(r'^(-?\d{2})(-?\d{2})-.*\.md$', basename)
-    if match is None:
-        return error
-
-    col = int(match.group(2))
-    row = int(match.group(1))
-
-    with open(filename, 'r', encoding="utf-8") as hex_file:
-        return True, col, row, frontmatter.load(hex_file)
-
-
-def generate_from_files(hexes, output_path, css):
+def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: str):
     """Generate the grid from files
 
     Args:
@@ -87,7 +62,7 @@ def generate_from_files(hexes, output_path, css):
     # find map boundary
     col_min, col_max = None, None
     row_min, row_max = None, None
-    for col, row in hexes.keys():
+    for col, row in [(h.col, h.row) for h in hexes]:
         if col_min is None or col_min > col:
             col_min = col
         if row_min is None or row_min > row:
@@ -128,7 +103,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    hexfiles = {}
+    metadatas = []
 
     for arg in args.src_path:
         files = glob.glob(arg)
@@ -136,13 +111,15 @@ if __name__ == "__main__":
         if not files:
             print('File does not exist: ' + arg, file=sys.stderr)
         for file in files:
-            isHexFile, col_file, row_file, contents = parse_hex_file(file)
-            if isHexFile:
-                hexfiles[col_file, row_file] = file, contents
+            try:
+                metadatas.append(TileMetadata(file))
+            except Exception as e:
+                print(e)
+
     CSS = ''
 
     if args.css and Path(args.css).is_file():
         with open(args.css, 'r', encoding="utf-8") as cfile:
             CSS = cfile.read()
 
-    generate_from_files(hexfiles, args.output, CSS)
+    generate_from_metadatas(metadatas, args.output, CSS)

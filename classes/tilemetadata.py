@@ -2,11 +2,12 @@ import errno
 import os
 import re
 from pathlib import Path
+from typing import Any
 
 import frontmatter
 
 
-class TileMetada:
+class TileMetadata:
     def __init__(self, filename: Path) -> None:
         """Check an Hexfile, and if it's valide, return a tuple with useful information
 
@@ -33,4 +34,10 @@ class TileMetada:
         self.row = int(match.group(1))
 
         with open(filename, 'r', encoding="utf-8") as hex_file:
-            self.content = frontmatter.load(hex_file).content
+            self.content = frontmatter.load(hex_file).metadata
+
+    def __getitem__(self, key: str) -> Any:
+        return self.content[key]
+
+    def get(self, key: str, default: Any) -> Any:
+        return self.content.get(key, default)

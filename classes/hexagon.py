@@ -17,6 +17,8 @@ from xml.dom import minidom
 
 import frontmatter
 
+from classes.tilemetadata import TileMetadata
+
 with open('svg_templates/text.svg', 'r', encoding="utf-8") as cfile:
     text_t = Template(cfile.read())
 
@@ -163,7 +165,7 @@ class HexagonGrid:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, hexes, grid_box: GridBox,
+    def __init__(self, hexes: List[TileMetadata], grid_box: GridBox,
                  radius: Decimal = 20) -> None:
         self.radius: Decimal = radius
         self.radius2: Decimal = calc_radius2(radius)
@@ -177,6 +179,9 @@ class HexagonGrid:
                             self.radius2 * 2 * grid_box.row_min +
                             grid_box.col_min % 2 * self.radius2 - self.radius2)
         row = self.row_min
+
+        # Before better solution
+        tmpHexes = {(h.col, h.row): h for h in hexes}
 
         # Here, we need to use a high precision decimal context. Otherwise some point that MUST
         # have the same coordinate do not. This breaks Clustering feature.
@@ -199,7 +204,7 @@ class HexagonGrid:
                                    2 * row + col % 2 * self.radius2 - self.origin.y)
                     pos = Position(col, row)
                     self.hexes.append(
-                        Hexagon(self, center, pos, hexes.get((col, row), None)))
+                        Hexagon(self, center, pos, tmpHexes.get((col, row), None)))
                     col += 1
                 row += 1
 
@@ -377,21 +382,21 @@ class Hexagon:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, grid: HexagonGrid, center: Point,
-                 position: Position, content: frontmatter.Post = None) -> None:
+                 position: Position, metadata: TileMetadata = None) -> None:
         self.center = center
         self.position = position
-        self.content = content
+        self.metadata = metadata
         self.grid: HexagonGrid = grid
         self.outer_points = self.__create_outer_points()
         self.inner_points = self.__create_inner_points()
         self.path_points = self.__create_path_points()
         self.icon = None
         self.zones = []
-        if self.content:
-            self.zones = self.content[1].get('zone', []) if isinstance(
-                self.content[1].get('zone', []), List) else [
-                self.content[1].get('zone', [])]
-            self.icon = self.content[1].get(
+        if self.metadata:
+            self.zones = self.metadata.get('zone', []) if isinstance(
+                self.metadata.get('zone', []), List) else [
+                self.metadata.get('zone', [])]
+            self.icon = self.metadata.get(
                 'icon', None)
 
     def __create_outer_points(self) -> List[Point]:
@@ -466,13 +471,13 @@ class Hexagon:
         terrain_css = ''
         mixed_terrains = []
         alt = None
-        if self.content:
-            terrain = self.content[1].get(
+        if self.metadata:
+            terrain = self.metadata.get(
                 'terrain', {}).get('type', 'unknown')
             terrain_css = terrain.lower()
-            mixed_terrains = self.content[1].get(
+            mixed_terrains = self.metadata.get(
                 'terrain', {}).get('mixed', [])
-            alt = self.content[1].get('alt', None)
+            alt = self.metadata.get('alt', None)
 
         # base terrain
         base_terrain = polygon_t.substitute(
@@ -511,8 +516,8 @@ class Hexagon:
     def __compute_path(self, type_of_path: str) -> str:
         paths = []
         result = ''
-        if self.content:
-            paths = self.content[1].get(
+        if self.metadata:
+            paths = self.metadata.get(
                 type_of_path, [])
 
         for path in paths:
