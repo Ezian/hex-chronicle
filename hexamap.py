@@ -17,38 +17,13 @@ from typing import List
 
 import frontmatter
 
+from classes.grid_renderer import Renderer
 from classes.hexagon import GridBox, HexagonGrid
+from classes.hexagon_renderer import HexagonRenderer
 from classes.tilemetadata import TileMetadata
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
-
-
-def fill_canvas(hexes: List[TileMetadata], grid_box: GridBox, css: str):
-    """Main function. Create a canvas of given boundaries and fill it with numbered hexes.
-
-    Args:
-       hexes (dict): key: tuple (col,row), values: tuple (filename, frontmatter content)
-       grid_box (GridBox) : Row/column boundaries
-
-    Returns:
-       string: svg of the entire canvas, ready for writing to a file.
-    """
-    # Wider radius of the hexagon
-    radius: Decimal = Decimal(100)
-
-    grid = HexagonGrid(hexes, grid_box, radius=radius)
-    strokewidth = radius / 15
-    fontsize = str(Decimal(2.5) * radius) + "%"
-
-    canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=grid.draw(),
-                                 width=str(grid.width), height=str(grid.height),
-                                 strokegrid=strokewidth, strokefont=strokewidth /
-                                 Decimal("1.5"),
-                                 strokepath=strokewidth * Decimal("1.2"),
-                                 fontsize=fontsize, css=css)
-    return canvas
 
 
 def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: str):
@@ -84,8 +59,7 @@ def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: s
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, GridBox(col_min - 1,
-                                            col_max + 1, row_min - 1, row_max + 1), css)
+        canvas = Renderer(hexes, Decimal(100)).draw_svg()
         ofile.write(canvas)
 
 
@@ -112,7 +86,7 @@ if __name__ == "__main__":
             print('File does not exist: ' + arg, file=sys.stderr)
         for file in files:
             try:
-                metadatas.append(TileMetadata(file))
+                metadatas.append(TileMetadata.from_file(file))
             except Exception as e:
                 print(e)
 
