@@ -37,7 +37,7 @@ class Renderer:
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row)                      : tile for l in tmptiles for tile in l}
+        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
 
         self.viewBox = self.__compute_view_box()
 
@@ -59,7 +59,7 @@ class Renderer:
 
     def draw_svg(self) -> str:
         # TODO Render SVG
-        content = self.__draw_grid() + self.__draw_numbers()
+        content = self.__draw_content() + self.__draw_grid() + self.__draw_numbers()
 
         return canvas_t.substitute(icons="",
                                    content=content,
@@ -76,3 +76,6 @@ class Renderer:
 
     def __draw_numbers(self) -> str:
         return "".join([self.hexRenderer.draw_numbers(tile) for tile in self.tiles.values()])
+
+    def __draw_content(self) -> str:
+        return "".join([self.hexRenderer.draw_content(tile) for tile in self.tiles.values()])

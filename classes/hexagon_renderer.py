@@ -159,3 +159,163 @@ class HexagonRenderer:
         position = self.get_inner_points(tile)[2]
         return number_t.substitute(
             left=position.x, top=position.y, row=tile.row, col=tile.col)
+
+    def draw_content(self, tile: TileMetadata):
+        """Generate svg code for a hexagon with terrain and all description features
+
+        Returns:
+        string: svg code for a single hexagon
+        """
+
+        # Read metadata
+        terrain_css = ''
+        mixed_terrains = []
+        alt = None
+        if tile.content:
+            terrain = tile.content.get(
+                'terrain', {}).get('type', 'unknown')
+            terrain_css = terrain.lower()
+            mixed_terrains = tile.content.get(
+                'terrain', {}).get('mixed', [])
+            alt = tile.content.get('alt', None)
+
+        # base terrain
+        base_terrain = polygon_t.substitute(
+            points=points_to_polygon_coord(self.get_outer_points(tile)),
+            cssClass=terrain_css
+        )
+
+        # mixed terrain
+        mixed_terrain = ''
+        for terrain in mixed_terrains:
+            type_css = terrain.get('type', 'unknown')
+            polygons: List[List[Point]] = self.compute_parts_polygons(tile,
+                                                                      terrain.get('sides', []))
+
+            for polygon in polygons:
+                point_str = points_to_polygon_coord(polygon)
+                mixed_terrain += polygon_t.substitute(
+                    points=point_str,
+                    cssClass=type_css
+                )
+
+        # Text or icon
+        center = self.get_path_points(tile)[Cardinal.C]
+        text = ''
+        # TODO icon
+        # if self.icon:
+        #     text = self.grid.icons_dict[self.icon].draw(center)
+        # elif alt:
+        if alt:
+            text = text_t.substitute(
+                cx=center.x, cy=center.y, text=alt)
+
+        road = self.__compute_path(tile, 'roads')
+        river = self.__compute_path(tile, 'rivers')
+
+        return base_terrain + mixed_terrain + road + river + text
+
+    def __compute_path(self, tile: TileMetadata, type_of_path: str) -> str:
+        paths = []
+        result = ''
+        if tile.content:
+            paths = tile.content.get(
+                type_of_path, [])
+
+        path_points = self.get_path_points(tile)
+
+        for path in paths:
+            try:
+                first, last = [path_points[
+                    Cardinal[k]
+                ]
+                    for k in path.split()]
+                center = path_points[Cardinal.C]
+                result += path_t.substitute(type=type_of_path,
+                                            bx=first.x, by=first.y,
+                                            ex=last.x, ey=last.y,
+                                            cx=center.x, cy=center.y)
+            except:  # pylint: disable=bare-except
+                print("Warning: fail compute " + str(type) + " '" + path + "'")
+
+        return result
+
+    def compute_parts_polygons(self, tile: TileMetadata, sides: List[str]) -> List[List[Point]]:
+        """Compute parts of polygon, for each zone.
+
+        Args:
+            sides (List[str]): List of side to compute
+
+        Returns:
+            List[List[Point]]: List of polygon for each side passed as argument
+        """
+        result: List[List[Point]] = []
+
+        for side in sides:
+            card = None
+            try:
+                card = Cardinal[side]
+            except KeyError:
+                pass  # do nothing
+            if card is Cardinal.N:
+                result.append([
+                    self.pin(tile, Cardinal.NE), self.pin(tile,
+                                                          Cardinal.NW), self.pout(tile, Cardinal.NW), self.pout(tile, Cardinal.NE),
+                ])
+            if card is Cardinal.NE:
+                result.append([
+                    self.pin(tile, Cardinal.E), self.pin(tile,
+                                                         Cardinal.NE), self.pout(tile, Cardinal.NE), self.pout(tile, Cardinal.E),
+                ])
+            if card is Cardinal.SE:
+                result.append([
+                    self.pin(tile, Cardinal.E), self.pin(tile,
+                                                         Cardinal.SE), self.pout(tile, Cardinal.SE), self.pout(tile, Cardinal.E),
+                ])
+            if card is Cardinal.S:
+                result.append([
+                    self.pin(tile, Cardinal.SE), self.pin(tile,
+                                                          Cardinal.SW), self.pout(tile, Cardinal.SW), self.pout(tile, Cardinal.SE),
+                ])
+            if card is Cardinal.SW:
+                result.append([
+                    self.pin(tile, Cardinal.W), self.pin(tile,
+                                                         Cardinal.SW), self.pout(tile, Cardinal.SW), self.pout(tile, Cardinal.W),
+                ])
+            if card is Cardinal.NW:
+                result.append([
+                    self.pin(tile, Cardinal.W), self.pin(tile,
+                                                         Cardinal.NW), self.pout(tile, Cardinal.NW), self.pout(tile, Cardinal.W),
+                ])
+            if card is Cardinal.C:
+                result.append(self.get_inner_points(tile))
+
+        return result
+
+    def pin(self, tile: TileMetadata, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card(Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.get_inner_points(tile)[card.pid()]
+
+    def pout(self, tile: TileMetadata, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card(Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.get_outer_points(tile)[card.pid()]
