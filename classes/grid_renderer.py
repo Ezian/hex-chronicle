@@ -33,7 +33,7 @@ class Renderer:
         ] for tile in tiles if tile.col % 2 == 1] + [[
             TileMetadata(tile.col, tile.row-1),
             TileMetadata(tile.col, tile.row+1),
-        ] for tile in tiles if tile.col % 2 == 1] + [tiles]
+        ] for tile in tiles if tile.col] + [tiles]
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
