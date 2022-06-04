@@ -1,20 +1,26 @@
 from string import Template
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
-from classes.hexagon_renderer import HexagonRenderer
-from classes.tilemetadata import Cardinal, TileMetadata
+from shapely.geometry import MultiPolygon, Polygon
+from shapely.ops import unary_union
 
-with open('svg_templates/canvas.v2.svg', 'r', encoding="utf-8") as cfile:
+from classes.hexagon_renderer import HexagonRenderer, polygon_to_svg_coord
+from classes.tilemetadata import TileMetadata
+
+with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
+
+with open('svg_templates/polygon.svg', 'r', encoding="utf-8") as cfile:
+    polygon_t = Template(cfile.read())
 
 
 class Renderer:
-    def __init__(self, tiles: List[TileMetadata],
+    def __init__(self, tiles: List[TileMetadata], css: str,
                  radius: float = 20) -> None:
         self.hexRenderer = HexagonRenderer(radius)
         self.strokewidth = radius / 15
         self.fontsize = str(2.5 * radius) + "%"
-        self.css = ""  # TODO
+        self.css = css
 
         tmptiles = {(h.col, h.row): h for h in tiles}
 
@@ -36,8 +42,7 @@ class Renderer:
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row)
-                       : tile for l in tmptiles for tile in l}
+        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
 
         if len(self.tiles) == 0:
             print("Warn: No tiles found")
@@ -63,11 +68,18 @@ class Renderer:
 
     def draw_svg(self) -> str:
 
-        icons = self.__load_icons()
-        content = self.__draw_content() + self.__draw_grid() + self.__draw_numbers()
+        defs = self.__load_icons()
+        layers = [
+            # First layers are on top of the elevation
+            self.__draw_zones(),
+            self.__draw_numbers(),
+            self.__draw_grid(),
+            self.__draw_content(),
+        ]
+        layers.reverse()
 
-        return canvas_t.substitute(icons=icons,
-                                   content=content,
+        return canvas_t.substitute(defs=defs,
+                                   content=''.join(layers),
                                    viewBox=" ".join([str(s)
                                                     for s in self.viewBox]),
                                    strokegrid=self.strokewidth, strokefont=self.strokewidth /
@@ -87,3 +99,28 @@ class Renderer:
 
     def __draw_content(self) -> str:
         return "".join([self.hexRenderer.draw_content(tile) for tile in self.tiles.values()])
+
+    def __draw_zones(self) -> str:
+        declared_zones = {zone for tile in self.tiles.values()
+                          for zone in tile.zones}
+        return "".join([polygon_t.substitute(
+            points=polygon_to_svg_coord(polygon),
+            cssClass=f"zone {z}") for z in declared_zones for polygon in
+            self.__make_cluster(lambda h, zone=z: zone in h.zones)])
+
+    def __make_cluster(self, cluster_checker: Callable[[TileMetadata], bool]) -> List[Polygon]:
+        """
+        Filters Hexagon of the grid and computes edge point of the cluster(s) border(s).
+        Args:
+            cluster_checker: lambda Hexagon ->boolean indicating members of the cluster
+
+        Returns: One or several Point lists representing cluster(s) border(s).
+
+        """
+        polygons = unary_union([self.hexRenderer.get_shape(
+            tile) for tile in self.tiles.values() if cluster_checker(tile)])
+
+        if isinstance(polygons, MultiPolygon):
+            return [Polygon(geom) for geom in polygons.geoms]
+
+        return [polygons]

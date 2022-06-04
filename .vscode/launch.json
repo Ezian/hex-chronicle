@@ -18,7 +18,13 @@
             "request": "launch",
             "program": "hexamap.py",
             "console": "integratedTerminal",
-            "args": ["--output", "hexgrid-example.svg", "./**/*"],
+            "args": [
+                "--output",
+                "hexgrid-example.svg",
+                "--css",
+                "test_files/custom.css",
+                "./**/*"
+            ],
             "justMyCode": true
         },
         {

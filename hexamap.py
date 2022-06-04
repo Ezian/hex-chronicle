@@ -15,7 +15,6 @@ from typing import List
 import frontmatter
 
 from classes.grid_renderer import Renderer
-from classes.hexagon import GridBox, HexagonGrid
 from classes.hexagon_renderer import HexagonRenderer
 from classes.tilemetadata import TileMetadata
 
@@ -56,7 +55,7 @@ def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: s
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = Renderer(hexes, 100.0).draw_svg()
+        canvas = Renderer(hexes, css, 100.0).draw_svg()
         ofile.write(canvas)
 
 

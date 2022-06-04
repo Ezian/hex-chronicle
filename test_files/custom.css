@@ -2,3 +2,7 @@
 .fortin {
     fill: green;
 }
+
+.zone.dangerous {
+    stroke: red;
+}

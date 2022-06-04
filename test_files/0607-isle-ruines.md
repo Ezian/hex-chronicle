@@ -9,4 +9,7 @@ alt: Ruines
 icon: ruines
 roads: 
     - n C
+zone:
+    - dangerous
+    - secured
 ---
