@@ -50,8 +50,7 @@ class Renderer:
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row)
-                       : tile for l in tmptiles for tile in l}
+        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
 
         if len(self.tiles) == 0:
             print("Warn: No tiles found")
@@ -94,7 +93,7 @@ class Renderer:
         layers.reverse()
 
         return canvas_t.substitute(defs=defs,
-                                   content=''.join(layers),
+                                   content='\n'.join(layers),
                                    viewBox=" ".join([str(s)
                                                     for s in self.view_box]),
                                    strokegrid=self.strokewidth, strokefont=self.strokewidth /
@@ -104,24 +103,28 @@ class Renderer:
                                    fontsize=self.fontsize, css=self.css)
 
     def __load_icons(self) -> str:
-        return "".join([self.hex_renderer.load_icon(tile) for tile in self.tiles.values()])
+        return "".join(sorted([self.hex_renderer.load_icon(tile)
+                               for tile in self.tiles.values()]))
 
     def __draw_grid(self) -> str:
-        return "".join([self.hex_renderer.draw_grid(tile) for tile in self.tiles.values()])
+        return "".join(sorted([self.hex_renderer.draw_grid(tile)
+                               for tile in self.tiles.values()]))
 
     def __draw_numbers(self) -> str:
-        return "".join([self.hex_renderer.draw_numbers(tile) for tile in self.tiles.values()])
+        return "".join(sorted([self.hex_renderer.draw_numbers(tile)
+                               for tile in self.tiles.values()]))
 
     def __draw_content(self) -> str:
-        return "".join([self.hex_renderer.draw_content(tile) for tile in self.tiles.values()])
+        return "".join(sorted([self.hex_renderer.draw_content(tile)
+                               for tile in self.tiles.values()]))
 
     def __draw_zones(self) -> str:
         declared_zones = {zone for tile in self.tiles.values()
                           for zone in tile.zones}
-        return "".join([polygon_t.substitute(
+        return "".join(sorted([polygon_t.substitute(
             points=polygon_to_svg_coord(polygon),
             cssClass=f"zone {z}") for z in declared_zones for polygon in
-            self.__make_cluster(lambda h, zone=z: zone in h.zones)])
+            self.__make_cluster(lambda h, zone=z: zone in h.zones)]))
 
     def __make_cluster(self, cluster_checker: Callable[[TileMetadata], bool]) -> List[Polygon]:
         """
