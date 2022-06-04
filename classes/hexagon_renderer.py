@@ -1,10 +1,14 @@
+"""hexrenderer.py
+
+Render a single hex
+"""
+
 import math
 from pathlib import Path
 from string import Template
 from typing import Dict, List, Tuple
 from xml.dom import minidom
 
-from attr import dataclass
 from shapely.geometry import Point, Polygon
 
 from classes.tilemetadata import Cardinal, TileMetadata
@@ -52,6 +56,13 @@ def polygon_to_svg_coord(polygon: Polygon) -> str:
 
 
 class TileShape:
+    """TileShape
+
+    Contains all required properties to draw an hexagon
+
+    """
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, col: int, row: int, radius: float, radius2: float) -> None:
         self.radius = radius
         self.radius2 = radius2
@@ -73,9 +84,21 @@ class TileShape:
 
     @property
     def bounding_box(self):
+        """
+        Returns:
+            tuple(float,float,float,float): the bouding box of the hexagon (xmin, ymin, xmax, ymax)
+        """
         return self.shape.bounds
 
     def get_zone(self, card: Cardinal) -> Polygon:
+        """
+        Get the polygon corresponding to a mixed zone
+        Args:
+            card (Cardinal): Cardinal of the mixed zone (NE, N, NW, SW, S or SE )
+
+        Returns:
+            Polygon: A polygon correspondint to the shape of the zone
+        """
         result = self.__zones.get(card)
         if not result:
             result = self.__compute_parts_polygon(card)
@@ -129,7 +152,7 @@ class TileShape:
         Returns:
             Polygon: The polygon of the side passed as argument
         """
-
+        # pylint: disable=too-many-return-statements
         if card is Cardinal.N:
             return Polygon([
                 self.pin(Cardinal.NE), self.pin(
@@ -230,6 +253,9 @@ class Icon:
 
 
 class HexagonRenderer:
+    """Render an hexagon
+    """
+
     def __init__(self, radius: float) -> None:
         self.__radius = radius
         self.__radius2 = math.sqrt(radius ** 2 - (radius / 2) ** 2)
@@ -237,6 +263,15 @@ class HexagonRenderer:
         self.icons_dict = {}
 
     def compute_shape(self, tile: TileMetadata) -> TileShape:
+        """Compute the shape of an tile from its metadata.
+        The shape is cached to avoid performance issues.
+
+        Args:
+            tile (TileMetadata): tilemetadata
+
+        Returns:
+            TileShape: The shape of the hexagon with a lot of helper functiont to draw many things
+        """
         result = self.__computed_points.get((tile.col, tile.row))
         if not result:
             result = TileShape(tile.col, tile.row,
@@ -246,21 +281,65 @@ class HexagonRenderer:
         return result
 
     def get_shape(self, tile: TileMetadata) -> Polygon:
+        """
+        Args:
+            tile (TileMetadata): a tile medata
+
+        Returns:
+            Polygon: the shape of the tile metadata
+        """
         return self.compute_shape(tile).shape
 
-    def get_number_pos(self, tile: TileMetadata) -> Point:
+    def get_coord_pos(self, tile: TileMetadata) -> Point:
+        """
+        Args:
+            tile (TileMetadata): a tile medata
+
+        Returns:
+            Point: The position of the coordinates
+        """
         return self.compute_shape(tile).inner_points[Cardinal.NW]
 
     def get_zone(self, tile: TileMetadata, card: Cardinal) -> Polygon:
+        """
+        Args:
+            tile (TileMetadata): a tile medata
+            card (Cardinal): A position in the tile
+
+        Returns:
+            Polygon: The shape of the polygon at the position.
+        """
         return self.compute_shape(tile).get_zone(card)
 
     def get_path_points(self, tile: TileMetadata) -> List[Point]:
+        """
+        Args:
+             tile (TileMetadata): a tile medata
+
+        Returns:
+            List[Point]: The points used to pass path (to draw rivers and roads)
+        """
         return self.compute_shape(tile).path_points
 
     def bounding_box(self, tile: TileMetadata) -> Tuple[float, float, float, float]:
+        """
+        Args:
+            tile (TileMetadata): a tile medata
+
+        Returns:
+            Tuple[float, float, float, float]: the bounding box (xmin, ymin, xmax, ymax)
+        """
         return self.compute_shape(tile).bounding_box
 
     def load_icon(self, tile: TileMetadata) -> str:
+        """
+        Loads icons and return defs to avoid multiple declaration of heavy icons.
+        Args:
+             tile (TileMetadata): a tile medata
+
+        Returns:
+            str: a defs to insert in <defs></defs> in the svg file
+        """
         if not tile.icon:
             return ""
 
@@ -314,11 +393,12 @@ class HexagonRenderer:
         string: svg code for a single hexagon
         """
 
-        position = self.get_number_pos(tile)
+        position = self.get_coord_pos(tile)
         return number_t.substitute(
             left=position.x, top=position.y, row=tile.row, col=tile.col)
 
     def draw_content(self, tile: TileMetadata):
+        # pylint: disable=too-many-locals
         """Generate svg code for a hexagon with terrain and all description features
 
         Returns:

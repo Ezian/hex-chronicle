@@ -12,10 +12,7 @@ from pathlib import Path
 from string import Template
 from typing import List
 
-import frontmatter
-
 from classes.grid_renderer import Renderer
-from classes.hexagon_renderer import HexagonRenderer
 from classes.tilemetadata import TileMetadata
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
@@ -81,6 +78,7 @@ if __name__ == "__main__":
         if not files:
             print('File does not exist: ' + arg, file=sys.stderr)
         for file in files:
+            # pylint: disable=broad-except
             try:
                 metadatas.append(TileMetadata.from_file(file))
             except Exception as e:

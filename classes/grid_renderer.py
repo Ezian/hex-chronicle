@@ -1,3 +1,7 @@
+"""gridrenderer.py
+
+Render a full hex grid
+"""
 from string import Template
 from typing import Callable, List, Tuple
 
@@ -15,9 +19,13 @@ with open('svg_templates/polygon.svg', 'r', encoding="utf-8") as cfile:
 
 
 class Renderer:
+    """ Render the map, from a list of TileMetadata
+    """
+
+    # pylint: disable=too-few-public-methods
     def __init__(self, tiles: List[TileMetadata], css: str,
                  radius: float = 20) -> None:
-        self.hexRenderer = HexagonRenderer(radius)
+        self.hex_renderer = HexagonRenderer(radius)
         self.strokewidth = radius / 15
         self.fontsize = str(2.5 * radius) + "%"
         self.css = css
@@ -42,32 +50,39 @@ class Renderer:
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
+        self.tiles = {(tile.col, tile.row)
+                       : tile for l in tmptiles for tile in l}
 
         if len(self.tiles) == 0:
             print("Warn: No tiles found")
             self.tiles = [TileMetadata(0, 0)]
 
-        self.viewBox = self.__compute_view_box()
+        self.view_box = self.__compute_view_box()
 
     def __compute_view_box(self) -> Tuple[float, float, float, float]:
         x_min = None
         y_min = None
         x_max = None
         y_max = None
-        for (x0, y0, x1, y1) in [self.hexRenderer.bounding_box(tile) for tile in self.tiles.values()]:
-            if not x_min or x0 < x_min:
-                x_min = x0
-            if not y_min or y0 < y_min:
-                y_min = y0
-            if not x_max or x1 > x_max:
-                x_max = x1
-            if not y_max or y1 > y_max:
-                y_max = y1
-        return x_min - self.strokewidth, y_min - self.strokewidth, x_max - x_min + self.strokewidth*2, y_max - y_min + self.strokewidth * 2
+        for (x_0, y_0, x_1, y_1) in [self.hex_renderer.bounding_box(tile)
+                                     for tile in self.tiles.values()]:
+            if not x_min or x_0 < x_min:
+                x_min = x_0
+            if not y_min or y_0 < y_min:
+                y_min = y_0
+            if not x_max or x_1 > x_max:
+                x_max = x_1
+            if not y_max or y_1 > y_max:
+                y_max = y_1
+        return (x_min - self.strokewidth, y_min - self.strokewidth,
+                x_max - x_min + self.strokewidth*2, y_max - y_min + self.strokewidth * 2)
 
     def draw_svg(self) -> str:
-
+        """draw_svg
+        Compute a string that contains all svg element to display for drawing the map
+        Returns:
+            str: a simple, svg-formatted string that display the map
+        """
         defs = self.__load_icons()
         layers = [
             # First layers are on top of the elevation
@@ -81,7 +96,7 @@ class Renderer:
         return canvas_t.substitute(defs=defs,
                                    content=''.join(layers),
                                    viewBox=" ".join([str(s)
-                                                    for s in self.viewBox]),
+                                                    for s in self.view_box]),
                                    strokegrid=self.strokewidth, strokefont=self.strokewidth /
                                    float("1.5"),
                                    strokepath=self.strokewidth *
@@ -89,16 +104,16 @@ class Renderer:
                                    fontsize=self.fontsize, css=self.css)
 
     def __load_icons(self) -> str:
-        return "".join([self.hexRenderer.load_icon(tile) for tile in self.tiles.values()])
+        return "".join([self.hex_renderer.load_icon(tile) for tile in self.tiles.values()])
 
     def __draw_grid(self) -> str:
-        return "".join([self.hexRenderer.draw_grid(tile) for tile in self.tiles.values()])
+        return "".join([self.hex_renderer.draw_grid(tile) for tile in self.tiles.values()])
 
     def __draw_numbers(self) -> str:
-        return "".join([self.hexRenderer.draw_numbers(tile) for tile in self.tiles.values()])
+        return "".join([self.hex_renderer.draw_numbers(tile) for tile in self.tiles.values()])
 
     def __draw_content(self) -> str:
-        return "".join([self.hexRenderer.draw_content(tile) for tile in self.tiles.values()])
+        return "".join([self.hex_renderer.draw_content(tile) for tile in self.tiles.values()])
 
     def __draw_zones(self) -> str:
         declared_zones = {zone for tile in self.tiles.values()
@@ -117,10 +132,10 @@ class Renderer:
         Returns: One or several Point lists representing cluster(s) border(s).
 
         """
-        polygons = unary_union([self.hexRenderer.get_shape(
+        polygons = unary_union([self.hex_renderer.get_shape(
             tile) for tile in self.tiles.values() if cluster_checker(tile)])
 
         if isinstance(polygons, MultiPolygon):
-            return [Polygon(geom) for geom in polygons.geoms]
+            return [Polygon(geom) for geom in MultiPolygon(polygons).geoms]
 
         return [polygons]

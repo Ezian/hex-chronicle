@@ -1,3 +1,7 @@
+"""tilemedata.py
+
+Define Metadata and useful types to work with tiles
+"""
 import errno
 import os
 import re
@@ -43,7 +47,16 @@ class Cardinal(Enum, metaclass=CardinalEnumMeta):
         """
         return self.value[1]
 
+    @staticmethod
     def valid_zone(zone) -> bool:
+        """
+        Check if the passed zone is valid
+        Args:
+            zone (Cardinal | str): The zone to check
+
+        Returns:
+            bool: true, except for W and O, which are not valid zone.
+        """
         check = None
         if isinstance(zone, Cardinal):
             check = zone
@@ -61,10 +74,15 @@ class Cardinal(Enum, metaclass=CardinalEnumMeta):
 
 
 class TileMetadata:
-    def __init__(self, col: int, row: int, content={}) -> None:
+    """Metadata for a tile
+    """
+
+    def __init__(self, col: int, row: int, content: Dict[str, Any] = None) -> None:
         self.col = col
         self.row = row
-        self.content: Dict[str:Any] = content
+        self.content = {}
+        if content:
+            self.content = content
         self.icon = None
         self.zones = self.content.get('zone', []) if isinstance(
             self.content.get('zone', []), List) else [
@@ -108,4 +126,12 @@ class TileMetadata:
         return self.content[key]
 
     def get(self, key: str, default: Any) -> Any:
+        """Access to metadata
+        Args:
+            key (str): Key of the metadata item
+            default (Any): Default value if it doesn't exists
+
+        Returns:
+            Any: The item
+        """
         return self.content.get(key, default)
