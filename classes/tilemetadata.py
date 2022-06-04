@@ -3,7 +3,7 @@ import os
 import re
 from enum import Enum, EnumMeta, auto
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import frontmatter
 
@@ -49,6 +49,12 @@ class TileMetadata:
         self.col = col
         self.row = row
         self.content: Dict[str:Any] = content
+        self.icon = None
+        self.zones = self.content.get('zone', []) if isinstance(
+            self.content.get('zone', []), List) else [
+            self.content.get('zone', [])]
+        self.icon = self.content.get(
+            'icon', None)
 
     @staticmethod
     def from_file(filename: Path):

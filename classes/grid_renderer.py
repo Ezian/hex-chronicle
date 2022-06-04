@@ -39,6 +39,10 @@ class Renderer:
         # with no content (they will be drawed with some default contents)
         self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
 
+        if len(self.tiles) == 0:
+            print("Warn: No tiles found")
+            self.tiles = [TileMetadata(0, 0)]
+
         self.viewBox = self.__compute_view_box()
 
     def __compute_view_box(self) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
@@ -58,10 +62,11 @@ class Renderer:
         return x_min - self.strokewidth, y_min - self.strokewidth, x_max - x_min + self.strokewidth*2, y_max - y_min + self.strokewidth * 2
 
     def draw_svg(self) -> str:
-        # TODO Render SVG
+
+        icons = self.__load_icons()
         content = self.__draw_content() + self.__draw_grid() + self.__draw_numbers()
 
-        return canvas_t.substitute(icons="",
+        return canvas_t.substitute(icons=icons,
                                    content=content,
                                    viewBox=" ".join([str(s)
                                                     for s in self.viewBox]),
@@ -70,6 +75,9 @@ class Renderer:
                                    strokepath=self.strokewidth *
                                    Decimal("1.2"),
                                    fontsize=self.fontsize, css=self.css)
+
+    def __load_icons(self) -> str:
+        return "".join([self.hexRenderer.load_icon(tile) for tile in self.tiles.values()])
 
     def __draw_grid(self) -> str:
         return "".join([self.hexRenderer.draw_grid(tile) for tile in self.tiles.values()])

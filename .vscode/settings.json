@@ -1,4 +1,5 @@
 {
     "svg.preview.background": "custom",
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+    "todo-tree.tree.scanMode": "workspace"
 }

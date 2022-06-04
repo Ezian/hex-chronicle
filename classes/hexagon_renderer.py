@@ -1,7 +1,9 @@
 from decimal import (Clamped, Decimal, FloatOperation, Inexact, Rounded,
                      localcontext)
+from pathlib import Path
 from string import Template
 from typing import Dict, List, Tuple
+from xml.dom import minidom
 
 from attr import dataclass
 
@@ -111,11 +113,41 @@ class TilePoints:
         return coords
 
 
+class Icon:
+    """Draw an icon over the map
+    """
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, icon_id: str,
+                 origin: Point, scale: Decimal, svg_def: str) -> None:
+        # pylint: disable=too-many-arguments
+        self.icon_id = icon_id
+        self.scale = scale
+        self.svg_def = svg_def
+        self.origin = origin
+
+    def draw(self, translate_to: Point) -> str:
+        """Draw the icon over the hex
+
+        Args:
+            translate_to (Decimal): offset where to translate the icon
+
+        Returns:
+            str: a svg string correctly translated to be drawed over the map
+        """
+        return icon_t.substitute(id=self.icon_id,
+                                 tx=translate_to.x - self.origin.x,
+                                 ty=translate_to.y - self.origin.y,
+                                 scale=self.scale)
+
+
 class HexagonRenderer:
     def __init__(self, radius: Decimal) -> None:
         self.radius = radius
         self.radius2 = (radius ** 2 - (radius / 2) ** 2).sqrt()
         self.computed_points = {}
+        self.icons_dict = {}
 
     def compute_points(self, tile: TileMetadata) -> TilePoints:
         result = self.computed_points.get((tile.col, tile.row))
@@ -136,6 +168,41 @@ class HexagonRenderer:
 
     def bounding_box(self, tile: TileMetadata) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
         return self.compute_points(tile).bounding_box
+
+    def load_icon(self, tile: TileMetadata) -> str:
+        if not tile.icon:
+            return ""
+
+        icon_path = Path(
+            'svg_templates/icons/building').joinpath(tile.icon + ".svg")
+        if not icon_path.is_file():
+            print(
+                f"{tile.icon} is not a valid icon (icon path '{icon_path}' isn't a file)")
+            return ""
+
+        # extract inner svg
+        with open(icon_path, 'r', encoding="UTF-8") as icon_file:
+            try:
+                doc = minidom.parseString(icon_file.read())
+                svg_dom = doc.getElementsByTagName("svg")[0]
+                view_box = svg_dom.getAttribute('viewBox')
+                x_0, y_0, x_1, y_1 = [Decimal(n)
+                                      for n in view_box.split(' ')]
+                max_box = max(x_1 - x_0, y_1 - y_0)
+
+                scale = self.radius2 / max_box / Decimal(1.1)
+                svg_dom.removeAttribute('viewBox')
+                svg_dom.setAttribute("id", tile.icon)
+                svg_dom.setAttribute("class", "icon " + tile.icon)
+                origin = Point(scale * (x_1 - x_0) / 2,
+                               scale * (y_1 - y_0) / 2)
+                icon = Icon(tile.icon, origin, scale, svg_dom.toxml())
+                self.icons_dict[tile.icon] = icon
+                return icon.svg_def
+            except:  # pylint: disable=bare-except
+                print("Warning: icon format not supported")
+
+        return ""
 
     def draw_grid(self, tile: TileMetadata) -> str:
         """Draw the grid for an hexagon
@@ -202,11 +269,14 @@ class HexagonRenderer:
         # Text or icon
         center = self.get_path_points(tile)[Cardinal.C]
         text = ''
-        # TODO icon
-        # if self.icon:
-        #     text = self.grid.icons_dict[self.icon].draw(center)
-        # elif alt:
-        if alt:
+        if tile.icon:
+            the_icon = self.icons_dict[tile.icon]
+            if the_icon:
+                text = the_icon.draw(center)
+            else:
+                print(f"Warning: Unknown icon {tile.icon}")
+
+        if len(text) == 0 and alt:
             text = text_t.substitute(
                 cx=center.x, cy=center.y, text=alt)
 
