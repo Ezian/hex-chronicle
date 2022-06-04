@@ -7,10 +7,7 @@ Generate a nice svg map from a bunch of markdown file with medadata.
 
 import argparse
 import glob
-import os
-import re
 import sys
-from decimal import Decimal
 from pathlib import Path
 from string import Template
 from typing import List
@@ -59,7 +56,7 @@ def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: s
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = Renderer(hexes, Decimal(100)).draw_svg()
+        canvas = Renderer(hexes, 100.0).draw_svg()
         ofile.write(canvas)
 
 

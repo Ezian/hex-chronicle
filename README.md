@@ -24,6 +24,7 @@ Python 3.8.10
 
 ```sh
 pip install python-frontmatter
+pip install shapely
 ```
 
 ## Example of the generated map

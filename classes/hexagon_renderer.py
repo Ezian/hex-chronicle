@@ -1,11 +1,11 @@
-from decimal import (Clamped, Decimal, FloatOperation, Inexact, Rounded,
-                     localcontext)
+import math
 from pathlib import Path
 from string import Template
 from typing import Dict, List, Tuple
 from xml.dom import minidom
 
 from attr import dataclass
+from shapely.geometry import Point, Polygon
 
 from classes.tilemetadata import Cardinal, TileMetadata
 
@@ -25,15 +25,6 @@ with open('svg_templates/path.svg', 'r', encoding="utf-8") as cfile:
     path_t = Template(cfile.read())
 
 
-@dataclass(frozen=True)
-class Point:
-    """A point on the canevas
-    """
-    # pylint: disable=invalid-name
-    x: Decimal
-    y: Decimal
-
-
 def points_to_polygon_coord(points: List[Point]) -> str:
     """Write points as polygon coordinate
 
@@ -47,60 +38,77 @@ def points_to_polygon_coord(points: List[Point]) -> str:
         [f"{point.x},{point.y}" for point in points])
 
 
-class TilePoints:
-    def __init__(self, col: int, row: int, radius: Decimal, radius2: Decimal) -> None:
-        # Here, we need to use a high precision decimal context. Otherwise some point that MUST
-        # have the same coordinate do not. This breaks Clustering feature.
-        # The default precision for Decimal is 28, so we must use a precision sufficient to
-        # handle operations like
-        # powers, sums and products
-        # So why not 35 ?
-        # We also enable Traps, so that this can be quickly detected.
+def polygon_to_svg_coord(polygon: Polygon) -> str:
+    """Write polygon as svg polygon coordinate
+
+    Args:
+        polygon (Polygon): Polygon
+
+    Returns:
+        str: List of coordinates ready to be inserted in svg polygon
+    """
+    return ' '.join(
+        [f"{point[0]},{point[1]}" for point in polygon.exterior.coords])
+
+
+class TileShape:
+    def __init__(self, col: int, row: int, radius: float, radius2: float) -> None:
         self.radius = radius
         self.radius2 = radius2
-        with localcontext() as ctx:
-            ctx.traps[FloatOperation] = True
-            ctx.traps[Clamped] = True
-            ctx.traps[Rounded] = True
-            ctx.traps[Inexact] = True
-            ctx.prec = 35
-            self.center = Point(self.radius * Decimal("1.5") * col,
-                                self.radius2 *
-                                2 * row + col % 2 * self.radius2)
+        self.center = Point(self.radius * 1.5 * col,
+                            self.radius2 *
+                            2 * row + col % 2 * self.radius2)
 
-            self.outer_points = self.__create_outer_points()
-            self.inner_points = self.__create_inner_points()
-            self.path_points = self.__create_path_points()
-            self.bounding_box = self.center.x - self.radius, self.center.y - \
-                self.radius2, self.center.x + self.radius, self.center.y + self.radius2
+        self.outer_points = self.__create_outer_points()
+        self.inner_points = self.__create_inner_points()
+        self.path_points = self.__create_path_points()
+        self.shape = Polygon([self.outer_points[c] for c in [
+            Cardinal.E,
+            Cardinal.NE,
+            Cardinal.NW,
+            Cardinal.W,
+            Cardinal.SW,
+            Cardinal.SE]])
+        self.__zones = {}
 
-    def __create_outer_points(self) -> List[Point]:
+    @property
+    def bounding_box(self):
+        return self.shape.bounds
+
+    def get_zone(self, card: Cardinal) -> Polygon:
+        result = self.__zones.get(card)
+        if not result:
+            result = self.__compute_parts_polygon(card)
+            self.__zones[card] = result
+        return result
+
+    def __create_outer_points(self) -> Dict[Cardinal, Point]:
         radius = self.radius
         radius2 = self.radius2
-        return [Point(x, y) for (x, y) in [
-            (self.center.x + radius, self.center.y),  # E
-            (self.center.x + radius / 2, self.center.y - radius2),  # NE
-            (self.center.x - radius / 2, self.center.y - radius2),  # NO
-            (self.center.x - radius, self.center.y),  # O
-            (self.center.x - radius / 2, self.center.y + radius2),  # SO
-            (self.center.x + radius / 2, self.center.y + radius2),  # SE
-        ]]
+        return {
+            Cardinal.E: Point(self.center.x + radius, self.center.y),
+            Cardinal.NE: Point(self.center.x + radius / 2, self.center.y - radius2),
+            Cardinal.NW: Point(self.center.x - radius / 2, self.center.y - radius2),
+            Cardinal.W: Point(self.center.x - radius, self.center.y),
+            Cardinal.SW: Point(self.center.x - radius / 2, self.center.y + radius2),
+            Cardinal.SE: Point(self.center.x + radius / 2, self.center.y + radius2),
+        }
 
-    def __create_inner_points(self) -> List[Point]:
-        radius = self.radius * Decimal("0.6")
-        radius2 = self.radius2 * Decimal("0.6")
-        return [Point(x, y) for (x, y) in [
-            (self.center.x + radius, self.center.y),  # E
-            (self.center.x + radius / 2, self.center.y - radius2),  # NE
-            (self.center.x - radius / 2, self.center.y - radius2),  # NO
-            (self.center.x - radius, self.center.y),  # O
-            (self.center.x - radius / 2, self.center.y + radius2),  # SO
-            (self.center.x + radius / 2, self.center.y + radius2),  # SE
-        ]]
+    def __create_inner_points(self) -> Dict[Cardinal, Point]:
+        radius = self.radius * 0.6
+        radius2 = self.radius2 * 0.6
+        return {
+            Cardinal.E: Point(self.center.x + radius, self.center.y),
+            Cardinal.NE: Point(self.center.x + radius / 2, self.center.y - radius2),
+            Cardinal.NW: Point(self.center.x - radius / 2, self.center.y - radius2),
+            Cardinal.W: Point(self.center.x - radius, self.center.y),
+            Cardinal.SW: Point(self.center.x - radius / 2, self.center.y + radius2),
+            Cardinal.SE: Point(self.center.x + radius / 2, self.center.y + radius2),
+        }
 
     def __create_path_points(self) -> Dict[Cardinal, Point]:
         radius2 = self.radius2
-        cosx = radius2 * Decimal("0.8660")  # cos(pi/6)
+        cosx = radius2 * 0.8660  # cos(pi/6)
         coords = {
             Cardinal.N: Point(self.center.x, self.center.y - radius2),
             Cardinal.NW: Point(self.center.x - cosx, self.center.y - radius2 / 2),
@@ -112,6 +120,85 @@ class TilePoints:
         }
         return coords
 
+    def __compute_parts_polygon(self, card: Cardinal) -> Polygon:
+        """Compute parts of polygon of one zone
+
+        Args:
+            side: side to compute
+
+        Returns:
+            Polygon: The polygon of the side passed as argument
+        """
+
+        if card is Cardinal.N:
+            return Polygon([
+                self.pin(Cardinal.NE), self.pin(
+                    Cardinal.NW), self.pout(Cardinal.NW), self.pout(Cardinal.NE),
+            ])
+        if card is Cardinal.NE:
+            return Polygon([
+                self.pin(Cardinal.E), self.pin(
+                    Cardinal.NE), self.pout(Cardinal.NE), self.pout(Cardinal.E),
+            ])
+        if card is Cardinal.SE:
+            return Polygon([
+                self.pin(Cardinal.E), self.pin(
+                    Cardinal.SE), self.pout(Cardinal.SE), self.pout(Cardinal.E),
+            ])
+        if card is Cardinal.S:
+            return Polygon([
+                self.pin(Cardinal.SE), self.pin(
+                    Cardinal.SW), self.pout(Cardinal.SW), self.pout(Cardinal.SE),
+            ])
+        if card is Cardinal.SW:
+            return Polygon([
+                self.pin(Cardinal.W), self.pin(
+                    Cardinal.SW), self.pout(Cardinal.SW), self.pout(Cardinal.W),
+            ])
+        if card is Cardinal.NW:
+            return Polygon([
+                self.pin(Cardinal.W), self.pin(
+                    Cardinal.NW), self.pout(Cardinal.NW), self.pout(Cardinal.W),
+            ])
+        if card is Cardinal.C:
+            return Polygon([self.inner_points[c] for c in [
+                Cardinal.E,
+                Cardinal.NE,
+                Cardinal.NW,
+                Cardinal.W,
+                Cardinal.SW,
+                Cardinal.SE]])
+
+        raise ValueError(f'No zone for this Cardinal: {card}')
+
+    def pin(self, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card(Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.inner_points[card]
+
+    def pout(self, card: Cardinal) -> Point:
+        """Access to an innerPoint through cardinal
+
+        Args:
+        card(Cardinal): Position of the point
+
+        Returns:
+        Point: the expected point
+        """
+        if card.pid() is None:
+            return None
+
+        return self.outer_points[card]
+
 
 class Icon:
     """Draw an icon over the map
@@ -120,7 +207,7 @@ class Icon:
     # pylint: disable=too-few-public-methods
 
     def __init__(self, icon_id: str,
-                 origin: Point, scale: Decimal, svg_def: str) -> None:
+                 origin: Point, scale: float, svg_def: str) -> None:
         # pylint: disable=too-many-arguments
         self.icon_id = icon_id
         self.scale = scale
@@ -143,31 +230,35 @@ class Icon:
 
 
 class HexagonRenderer:
-    def __init__(self, radius: Decimal) -> None:
-        self.radius = radius
-        self.radius2 = (radius ** 2 - (radius / 2) ** 2).sqrt()
-        self.computed_points = {}
+    def __init__(self, radius: float) -> None:
+        self.__radius = radius
+        self.__radius2 = math.sqrt(radius ** 2 - (radius / 2) ** 2)
+        self.__computed_points = {}
         self.icons_dict = {}
 
-    def compute_points(self, tile: TileMetadata) -> TilePoints:
-        result = self.computed_points.get((tile.col, tile.row))
+    def compute_shape(self, tile: TileMetadata) -> TileShape:
+        result = self.__computed_points.get((tile.col, tile.row))
         if not result:
-            result = TilePoints(tile.col, tile.row, self.radius, self.radius2)
-            self.computed_points[tile.col, tile.row] = result
+            result = TileShape(tile.col, tile.row,
+                               self.__radius, self.__radius2)
+            self.__computed_points[tile.col, tile.row] = result
 
         return result
 
-    def get_outer_points(self, tile: TileMetadata) -> List[Point]:
-        return self.compute_points(tile).outer_points
+    def get_shape(self, tile: TileMetadata) -> Polygon:
+        return self.compute_shape(tile).shape
 
-    def get_inner_points(self, tile: TileMetadata) -> List[Point]:
-        return self.compute_points(tile).inner_points
+    def get_number_pos(self, tile: TileMetadata) -> Point:
+        return self.compute_shape(tile).inner_points[Cardinal.NW]
+
+    def get_zone(self, tile: TileMetadata, card: Cardinal) -> Polygon:
+        return self.compute_shape(tile).get_zone(card)
 
     def get_path_points(self, tile: TileMetadata) -> List[Point]:
-        return self.compute_points(tile).path_points
+        return self.compute_shape(tile).path_points
 
-    def bounding_box(self, tile: TileMetadata) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
-        return self.compute_points(tile).bounding_box
+    def bounding_box(self, tile: TileMetadata) -> Tuple[float, float, float, float]:
+        return self.compute_shape(tile).bounding_box
 
     def load_icon(self, tile: TileMetadata) -> str:
         if not tile.icon:
@@ -186,11 +277,11 @@ class HexagonRenderer:
                 doc = minidom.parseString(icon_file.read())
                 svg_dom = doc.getElementsByTagName("svg")[0]
                 view_box = svg_dom.getAttribute('viewBox')
-                x_0, y_0, x_1, y_1 = [Decimal(n)
+                x_0, y_0, x_1, y_1 = [float(n)
                                       for n in view_box.split(' ')]
                 max_box = max(x_1 - x_0, y_1 - y_0)
 
-                scale = self.radius2 / max_box / Decimal(1.1)
+                scale = self.__radius2 / max_box / float(1.1)
                 svg_dom.removeAttribute('viewBox')
                 svg_dom.setAttribute("id", tile.icon)
                 svg_dom.setAttribute("class", "icon " + tile.icon)
@@ -212,7 +303,7 @@ class HexagonRenderer:
         """
 
         return polygon_t.substitute(
-            points=points_to_polygon_coord(self.get_outer_points(tile)),
+            points=polygon_to_svg_coord(self.get_shape(tile)),
             cssClass="grid"
         )
 
@@ -223,7 +314,7 @@ class HexagonRenderer:
         string: svg code for a single hexagon
         """
 
-        position = self.get_inner_points(tile)[2]
+        position = self.get_number_pos(tile)
         return number_t.substitute(
             left=position.x, top=position.y, row=tile.row, col=tile.col)
 
@@ -248,7 +339,8 @@ class HexagonRenderer:
 
         # base terrain
         base_terrain = polygon_t.substitute(
-            points=points_to_polygon_coord(self.get_outer_points(tile)),
+            points=polygon_to_svg_coord(
+                self.get_shape(tile)),
             cssClass=terrain_css
         )
 
@@ -256,11 +348,11 @@ class HexagonRenderer:
         mixed_terrain = ''
         for terrain in mixed_terrains:
             type_css = terrain.get('type', 'unknown')
-            polygons: List[List[Point]] = self.compute_parts_polygons(tile,
-                                                                      terrain.get('sides', []))
+            polygons: List[Polygon] = [self.get_zone(tile, Cardinal[side]) for side in terrain.get(
+                'sides', []) if Cardinal.valid_zone(side)]
 
             for polygon in polygons:
-                point_str = points_to_polygon_coord(polygon)
+                point_str = polygon_to_svg_coord(polygon)
                 mixed_terrain += polygon_t.substitute(
                     points=point_str,
                     cssClass=type_css
@@ -309,83 +401,3 @@ class HexagonRenderer:
                 print("Warning: fail compute " + str(type) + " '" + path + "'")
 
         return result
-
-    def compute_parts_polygons(self, tile: TileMetadata, sides: List[str]) -> List[List[Point]]:
-        """Compute parts of polygon, for each zone.
-
-        Args:
-            sides (List[str]): List of side to compute
-
-        Returns:
-            List[List[Point]]: List of polygon for each side passed as argument
-        """
-        result: List[List[Point]] = []
-
-        for side in sides:
-            card = None
-            try:
-                card = Cardinal[side]
-            except KeyError:
-                pass  # do nothing
-            if card is Cardinal.N:
-                result.append([
-                    self.pin(tile, Cardinal.NE), self.pin(tile,
-                                                          Cardinal.NW), self.pout(tile, Cardinal.NW), self.pout(tile, Cardinal.NE),
-                ])
-            if card is Cardinal.NE:
-                result.append([
-                    self.pin(tile, Cardinal.E), self.pin(tile,
-                                                         Cardinal.NE), self.pout(tile, Cardinal.NE), self.pout(tile, Cardinal.E),
-                ])
-            if card is Cardinal.SE:
-                result.append([
-                    self.pin(tile, Cardinal.E), self.pin(tile,
-                                                         Cardinal.SE), self.pout(tile, Cardinal.SE), self.pout(tile, Cardinal.E),
-                ])
-            if card is Cardinal.S:
-                result.append([
-                    self.pin(tile, Cardinal.SE), self.pin(tile,
-                                                          Cardinal.SW), self.pout(tile, Cardinal.SW), self.pout(tile, Cardinal.SE),
-                ])
-            if card is Cardinal.SW:
-                result.append([
-                    self.pin(tile, Cardinal.W), self.pin(tile,
-                                                         Cardinal.SW), self.pout(tile, Cardinal.SW), self.pout(tile, Cardinal.W),
-                ])
-            if card is Cardinal.NW:
-                result.append([
-                    self.pin(tile, Cardinal.W), self.pin(tile,
-                                                         Cardinal.NW), self.pout(tile, Cardinal.NW), self.pout(tile, Cardinal.W),
-                ])
-            if card is Cardinal.C:
-                result.append(self.get_inner_points(tile))
-
-        return result
-
-    def pin(self, tile: TileMetadata, card: Cardinal) -> Point:
-        """Access to an innerPoint through cardinal
-
-        Args:
-        card(Cardinal): Position of the point
-
-        Returns:
-        Point: the expected point
-        """
-        if card.pid() is None:
-            return None
-
-        return self.get_inner_points(tile)[card.pid()]
-
-    def pout(self, tile: TileMetadata, card: Cardinal) -> Point:
-        """Access to an innerPoint through cardinal
-
-        Args:
-        card(Cardinal): Position of the point
-
-        Returns:
-        Point: the expected point
-        """
-        if card.pid() is None:
-            return None
-
-        return self.get_outer_points(tile)[card.pid()]

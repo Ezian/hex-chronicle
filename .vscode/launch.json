@@ -4,9 +4,14 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
-
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
         {
             "name": "Python: Hexamap",
             "type": "python",
@@ -22,7 +27,13 @@
             "request": "launch",
             "program": "hexamap.py",
             "console": "integratedTerminal",
-            "args": ["--output", "output", "--css", "test_files/custom.css", "./**/*"],
+            "args": [
+                "--output",
+                "output",
+                "--css",
+                "test_files/custom.css",
+                "./**/*"
+            ],
             "justMyCode": true
         },
         {

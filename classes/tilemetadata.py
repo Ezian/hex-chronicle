@@ -43,6 +43,22 @@ class Cardinal(Enum, metaclass=CardinalEnumMeta):
         """
         return self.value[1]
 
+    def valid_zone(zone) -> bool:
+        check = None
+        if isinstance(zone, Cardinal):
+            check = zone
+        if isinstance(zone, str):
+            try:
+                check = Cardinal[zone]
+            except KeyError:
+                return False
+        if not check:
+            return False
+
+        return check not in [
+            Cardinal.E,
+            Cardinal.W]
+
 
 class TileMetadata:
     def __init__(self, col: int, row: int, content={}) -> None:

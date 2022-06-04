@@ -1,4 +1,3 @@
-from decimal import Decimal
 from string import Template
 from typing import List, Tuple
 
@@ -11,10 +10,10 @@ with open('svg_templates/canvas.v2.svg', 'r', encoding="utf-8") as cfile:
 
 class Renderer:
     def __init__(self, tiles: List[TileMetadata],
-                 radius: Decimal = 20) -> None:
+                 radius: float = 20) -> None:
         self.hexRenderer = HexagonRenderer(radius)
         self.strokewidth = radius / 15
-        self.fontsize = str(Decimal(2.5) * radius) + "%"
+        self.fontsize = str(2.5 * radius) + "%"
         self.css = ""  # TODO
 
         tmptiles = {(h.col, h.row): h for h in tiles}
@@ -37,7 +36,8 @@ class Renderer:
 
         # Contains all tiles from params, and tiles that have a border with them,
         # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
+        self.tiles = {(tile.col, tile.row)
+                       : tile for l in tmptiles for tile in l}
 
         if len(self.tiles) == 0:
             print("Warn: No tiles found")
@@ -45,7 +45,7 @@ class Renderer:
 
         self.viewBox = self.__compute_view_box()
 
-    def __compute_view_box(self) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
+    def __compute_view_box(self) -> Tuple[float, float, float, float]:
         x_min = None
         y_min = None
         x_max = None
@@ -71,9 +71,9 @@ class Renderer:
                                    viewBox=" ".join([str(s)
                                                     for s in self.viewBox]),
                                    strokegrid=self.strokewidth, strokefont=self.strokewidth /
-                                   Decimal("1.5"),
+                                   float("1.5"),
                                    strokepath=self.strokewidth *
-                                   Decimal("1.2"),
+                                   float("1.2"),
                                    fontsize=self.fontsize, css=self.css)
 
     def __load_icons(self) -> str:
