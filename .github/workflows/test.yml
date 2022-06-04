@@ -1,0 +1,27 @@
+name: Test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint python-frontmatter shapely
+    - name: Check "hexgrid-example.svg" against a run
+      run: |
+        want=hexgrid-example.svg
+        got=hexgrid-example.check.svg
+        python hexamap.py --output "$got" --css test_files/custom.css ./**/*
+        diff $want $got
+        
