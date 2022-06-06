@@ -64,7 +64,7 @@ roads:
     - SO SE # To draw some roads on the polygon, from a side to another, or from the center to a side
 rivers: 
     - N S # To draw some rivers on the polygon, from a side to another, or from the center to a side
-zone: secured # Draw polygon on the top of the grid show a zone that can contains several polygon. Zone can be also listed here (through several lines with hyphen)
+zone: secured # Add this tile in a zone. By default, only "secured" zone is defined (which will be rendered with a green dashed  boundary), but you may add others through custom css. This attribute can be either a string or a list of string. 
 ---
 
 # The content doesn't matter now
@@ -103,7 +103,7 @@ There is only one default zone `secured` which is represented as a green, dashed
 
 More zone can be defined through custom CSS.
 
-An hexagon can be contained in several zone, as in the example above.
+An hexagon can be contained in several zone, as in the example below.
 
 ```yaml
 zone:

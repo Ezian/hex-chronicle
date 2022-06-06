@@ -4,6 +4,7 @@ Render a full hex grid
 """
 from string import Template
 from typing import Callable, List, Tuple
+from numpy import tile
 
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
@@ -20,41 +21,22 @@ with open('svg_templates/polygon.svg', 'r', encoding="utf-8") as cfile:
 
 class Renderer:
     """ Render the map, from a list of TileMetadata
+
+    Raises:
+        ValueError: If there is no tiles to render
     """
 
     # pylint: disable=too-few-public-methods
     def __init__(self, tiles: List[TileMetadata], css: str,
                  radius: float = 20) -> None:
+        if len(tiles) == 0:
+            raise ValueError("No tiles to render")
+
         self.hex_renderer = HexagonRenderer(radius)
         self.strokewidth = radius / 15
         self.fontsize = str(2.5 * radius) + "%"
         self.css = css
-
-        tmptiles = {(h.col, h.row): h for h in tiles}
-
-        tmptiles = [[
-            TileMetadata(tile.col-1, tile.row-1),
-            TileMetadata(tile.col-1, tile.row),
-            TileMetadata(tile.col+1, tile.row-1),
-            TileMetadata(tile.col+1, tile.row),
-        ] for tile in tiles if tile.col % 2 == 0
-        ] + [[
-            TileMetadata(tile.col-1, tile.row+1),
-            TileMetadata(tile.col-1, tile.row),
-            TileMetadata(tile.col+1, tile.row+1),
-            TileMetadata(tile.col+1, tile.row),
-        ] for tile in tiles if tile.col % 2 == 1] + [[
-            TileMetadata(tile.col, tile.row-1),
-            TileMetadata(tile.col, tile.row+1),
-        ] for tile in tiles if tile.col] + [tiles]
-
-        # Contains all tiles from params, and tiles that have a border with them,
-        # with no content (they will be drawed with some default contents)
-        self.tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
-
-        if len(self.tiles) == 0:
-            print("Warn: No tiles found")
-            self.tiles = [TileMetadata(0, 0)]
+        self.tiles = {(tile.col, tile.row): tile for tile in tiles}
 
         self.view_box = self.__compute_view_box()
 

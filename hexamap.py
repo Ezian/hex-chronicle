@@ -7,6 +7,7 @@ Generate a nice svg map from a bunch of markdown file with medadata.
 
 import argparse
 import glob
+import logging
 import sys
 from pathlib import Path
 from string import Template
@@ -14,9 +15,6 @@ from typing import List
 
 from classes.grid_renderer import Renderer
 from classes.tilemetadata import TileMetadata
-
-with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
-    canvas_t = Template(cfile.read())
 
 
 def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: str):
@@ -52,8 +50,46 @@ def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: s
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = Renderer(hexes, css, 100.0).draw_svg()
+        canvas = Renderer(add_border_tiles(hexes), css, 100.0).draw_svg()
         ofile.write(canvas)
+
+
+def add_border_tiles(tiles: List[TileMetadata]) -> List[TileMetadata]:
+    """Add empty tiles around the existing one, to have a nicer render
+
+    Args:
+        tiles (List[TileMetadata]): Liste of tiles from files
+
+    Returns:
+        List[TileMetadata]: The input tiles, plus tiles that are with them.
+    """
+
+    if len(tiles) == 0:
+        print("Warn: No tiles found")
+        return [TileMetadata(0, 0)]
+
+    tmptiles = [[
+        TileMetadata(tile.col-1, tile.row-1),
+        TileMetadata(tile.col-1, tile.row),
+        TileMetadata(tile.col+1, tile.row-1),
+        TileMetadata(tile.col+1, tile.row),
+    ] for tile in tiles if tile.col % 2 == 0
+    ] + [[
+        TileMetadata(tile.col-1, tile.row+1),
+        TileMetadata(tile.col-1, tile.row),
+        TileMetadata(tile.col+1, tile.row+1),
+        TileMetadata(tile.col+1, tile.row),
+    ] for tile in tiles if tile.col % 2 == 1] + [[
+        TileMetadata(tile.col, tile.row-1),
+        TileMetadata(tile.col, tile.row+1),
+    ] for tile in tiles if tile.col] + [tiles]
+
+    # Contains all tiles from params, and tiles that have a border with them,
+    # with no content (they will be drawed with some default contents)
+    filteredTiles = {(tile.col, tile.row)
+                      : tile for l in tmptiles for tile in l}
+
+    return filteredTiles.values()
 
 
 if __name__ == "__main__":
@@ -82,7 +118,7 @@ if __name__ == "__main__":
             try:
                 metadatas.append(TileMetadata.from_file(file))
             except Exception as e:
-                print(e)
+                logging.warning(e)
 
     CSS = ''
 

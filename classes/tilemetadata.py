@@ -95,7 +95,7 @@ class TileMetadata:
         """Check an Hexfile, and if it's valide, return a tuple with useful information
 
         Args:
-            filename (filepath): the relative or absolute path of the file to pase
+            filename (filepath): the relative or absolute path of the file to parse
 
         Returns:
             (boolean, int, int, dict): First return indicates if it's a valid file,
@@ -109,7 +109,7 @@ class TileMetadata:
 
         # The filename should follow the pattern XXYY-<some_name>.md
         basename = os.path.basename(filename)
-        match = re.match(r'^(-?\d{2})(-?\d{2})-.*\.md$', basename)
+        match = re.match(r'^(-?\d{2})(-?\d{2})(?:-|_).*\.md$', basename)
         if match is None:
             raise ValueError(f'{basename} is not a valid basename.')
 
