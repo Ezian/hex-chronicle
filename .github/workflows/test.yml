@@ -1,4 +1,4 @@
-name: Pylint
+name: Test
 
 on: [push]
 
@@ -17,7 +17,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint -r requirements.txt
-    - name: Analysing the code with pylint
+        pip install pylint python-frontmatter shapely
+    - name: Check "hexgrid-example.svg" against a run
       run: |
-        pylint $(git ls-files '*.py')
+        want=hexgrid-example.svg
+        got=hexgrid-example.check.svg
+        python hexamap.py --output "$got" --css test_files/custom.css test_files/**
+        diff $want $got
+        

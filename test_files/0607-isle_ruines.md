@@ -5,9 +5,11 @@ terrain:
         - type: sea
           sides:
             - SO
-            - S
-            - SE
-            - C
-            - NE
-alt: Baie
+alt: Ruines
+icon: ruines
+roads: 
+    - n C
+zone:
+    - dangerous
+    - secured
 ---

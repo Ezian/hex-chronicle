@@ -9,6 +9,7 @@ An hex-map generator for exploration sand-box RPG
   - [Hexagon description example](#hexagon-description-example)
     - [Terrain types](#terrain-types)
     - [Multiple parts terrain.](#multiple-parts-terrain)
+    - [Zones](#zones)
     - [Roads and River](#roads-and-river)
     - [Buildings icons](#buildings-icons)
   - [The Hexagon concept](#the-hexagon-concept)
@@ -24,6 +25,7 @@ Python 3.8.10
 
 ```sh
 pip install python-frontmatter
+pip install shapely
 ```
 
 ## Example of the generated map
@@ -62,6 +64,7 @@ roads:
     - SO SE # To draw some roads on the polygon, from a side to another, or from the center to a side
 rivers: 
     - N S # To draw some rivers on the polygon, from a side to another, or from the center to a side
+zone: secured # Add this tile in a zone. By default, only "secured" zone is defined (which will be rendered with a green dashed  boundary), but you may add others through custom css. This attribute can be either a string or a list of string. 
 ---
 
 # The content doesn't matter now
@@ -93,6 +96,20 @@ Terrains can be added / modified by using the custom CSS feature through the `--
 ### Multiple parts terrain.
 
 You can have different type of terrain on a same Hexagone. There is seven zones in a hexagon. See [The Hexagon concept](#the-hexagon-concept) paragraph.
+
+### Zones
+
+There is only one default zone `secured` which is represented as a green, dashed polygon on the top of the grid.
+
+More zone can be defined through custom CSS.
+
+An hexagon can be contained in several zone, as in the example below.
+
+```yaml
+zone:
+  - secured
+  - dangerous
+```
 
 ### Roads and River
 

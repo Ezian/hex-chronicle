@@ -1,4 +1,4 @@
-<svg width="$width" height="$height" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
+<svg viewBox="$viewBox" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink">
     <style type="text/css">
         polygon {
@@ -99,15 +99,15 @@
             stroke-linejoin: round;
             stroke-linecap: round;
         }
-        
+
         .zone.secured {
-          stroke: green;
+            stroke: green;
         }
-        
+
         $css
     </style>
     <defs>
-        $icons
+        $defs
     </defs>
     $content
 </svg>

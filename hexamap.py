@@ -7,76 +7,16 @@ Generate a nice svg map from a bunch of markdown file with medadata.
 
 import argparse
 import glob
-import os
-import re
+import logging
 import sys
-from decimal import Decimal
 from pathlib import Path
-from string import Template
+from typing import List
 
-import frontmatter
-
-from classes.hexagon import HexagonGrid, GridBox
-
-with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
-    canvas_t = Template(cfile.read())
+from classes.grid_renderer import Renderer
+from classes.tilemetadata import TileMetadata
 
 
-def fill_canvas(hexes, grid_box: GridBox, css):
-    """Main function. Create a canvas of given boundaries and fill it with numbered hexes.
-
-    Args:
-       hexes (dict): key: tuple (col,row), values: tuple (filename, frontmatter content)
-       grid_box (GridBox) : Row/column boundaries
-
-    Returns:
-       string: svg of the entire canvas, ready for writing to a file.
-    """
-    # Wider radius of the hexagon
-    radius: Decimal = Decimal(100)
-
-    grid = HexagonGrid(hexes, grid_box, radius=radius)
-    strokewidth = radius / 15
-    fontsize = str(Decimal(2.5) * radius) + "%"
-
-    canvas = canvas_t.substitute(icons=grid.icons(),
-                                 content=grid.draw(),
-                                 width=str(grid.width), height=str(grid.height),
-                                 strokegrid=strokewidth, strokefont=strokewidth / Decimal("1.5"),
-                                 strokepath=strokewidth * Decimal("1.2"),
-                                 fontsize=fontsize, css=css)
-    return canvas
-
-
-def parse_hex_file(filename):
-    """Check an Hexfile, and if it's valide, return a tuple with useful information
-
-    Args:
-       filename (filepath): the relative or absolute path of the file to pase
-
-    Returns:
-       (boolean, int, int, dict): First return indicates if it's a valid file,
-       second and third the x and y position in grid, and the last a bunch of
-       values extracted from the file
-    """
-    error = False, 0, 0, {}
-    # The file must exists
-    if not os.path.isfile(filename):
-        return error
-    # The filename should follow the pattern XXYY-<some_name>.md
-    basename = os.path.basename(filename)
-    match = re.match(r'^(-?\d{2})(-?\d{2})-.*\.md$', basename)
-    if match is None:
-        return error
-
-    col = int(match.group(2))
-    row = int(match.group(1))
-
-    with open(filename, 'r', encoding="utf-8") as hex_file:
-        return True, col, row, frontmatter.load(hex_file)
-
-
-def generate_from_files(hexes, output_path, css):
+def generate_from_metadatas(hexes: List[TileMetadata], output_path: Path, css: str):
     """Generate the grid from files
 
     Args:
@@ -87,7 +27,7 @@ def generate_from_files(hexes, output_path, css):
     # find map boundary
     col_min, col_max = None, None
     row_min, row_max = None, None
-    for col, row in hexes.keys():
+    for col, row in [(h.col, h.row) for h in hexes]:
         if col_min is None or col_min > col:
             col_min = col
         if row_min is None or row_min > row:
@@ -109,9 +49,46 @@ def generate_from_files(hexes, output_path, css):
 
     with open(output_file, 'w', encoding="utf-8") as ofile:
         # Generating canevas with empty hexes around boundaries
-        canvas = fill_canvas(hexes, GridBox(col_min - 1,
-                                            col_max + 1, row_min - 1, row_max + 1), css)
+        canvas = Renderer(add_border_tiles(hexes), css, 100.0).draw_svg()
         ofile.write(canvas)
+
+
+def add_border_tiles(tiles: List[TileMetadata]) -> List[TileMetadata]:
+    """Add empty tiles around the existing one, to have a nicer render
+
+    Args:
+        tiles (List[TileMetadata]): Liste of tiles from files
+
+    Returns:
+        List[TileMetadata]: The input tiles, plus tiles that are with them.
+    """
+
+    if len(tiles) == 0:
+        print("Warn: No tiles found")
+        return [TileMetadata(0, 0)]
+
+    tmptiles = [[
+        TileMetadata(tile.col-1, tile.row-1),
+        TileMetadata(tile.col-1, tile.row),
+        TileMetadata(tile.col+1, tile.row-1),
+        TileMetadata(tile.col+1, tile.row),
+    ] for tile in tiles if tile.col % 2 == 0
+    ] + [[
+        TileMetadata(tile.col-1, tile.row+1),
+        TileMetadata(tile.col-1, tile.row),
+        TileMetadata(tile.col+1, tile.row+1),
+        TileMetadata(tile.col+1, tile.row),
+    ] for tile in tiles if tile.col % 2 == 1] + [[
+        TileMetadata(tile.col, tile.row-1),
+        TileMetadata(tile.col, tile.row+1),
+    ] for tile in tiles if tile.col] + [tiles]
+
+    # Contains all tiles from params, and tiles that have a border with them,
+    # with no content (they will be drawed with some default contents)
+
+    filtered_tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
+
+    return filtered_tiles.values()
 
 
 if __name__ == "__main__":
@@ -128,7 +105,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    hexfiles = {}
+    metadatas = []
 
     for arg in args.src_path:
         files = glob.glob(arg)
@@ -136,13 +113,16 @@ if __name__ == "__main__":
         if not files:
             print('File does not exist: ' + arg, file=sys.stderr)
         for file in files:
-            isHexFile, col_file, row_file, contents = parse_hex_file(file)
-            if isHexFile:
-                hexfiles[col_file, row_file] = file, contents
+            # pylint: disable=broad-except
+            try:
+                metadatas.append(TileMetadata.from_file(file))
+            except Exception as e:
+                logging.warning(e)
+
     CSS = ''
 
     if args.css and Path(args.css).is_file():
         with open(args.css, 'r', encoding="utf-8") as cfile:
             CSS = cfile.read()
 
-    generate_from_files(hexfiles, args.output, CSS)
+    generate_from_metadatas(metadatas, args.output, CSS)
