@@ -23,7 +23,7 @@
                 "hexgrid-example.svg",
                 "--css",
                 "test_files/custom.css",
-                "./**/*"
+                "test_files/**"
             ],
             "justMyCode": true
         },

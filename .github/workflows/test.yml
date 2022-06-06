@@ -22,6 +22,6 @@ jobs:
       run: |
         want=hexgrid-example.svg
         got=hexgrid-example.check.svg
-        python hexamap.py --output "$got" --css test_files/custom.css ./**/*
+        python hexamap.py --output "$got" --css test_files/custom.css test_files/**
         diff $want $got
         

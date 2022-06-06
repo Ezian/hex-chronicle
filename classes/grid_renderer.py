@@ -4,7 +4,6 @@ Render a full hex grid
 """
 from string import Template
 from typing import Callable, List, Tuple
-from numpy import tile
 
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union

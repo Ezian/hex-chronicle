@@ -10,7 +10,6 @@ import glob
 import logging
 import sys
 from pathlib import Path
-from string import Template
 from typing import List
 
 from classes.grid_renderer import Renderer
@@ -86,10 +85,10 @@ def add_border_tiles(tiles: List[TileMetadata]) -> List[TileMetadata]:
 
     # Contains all tiles from params, and tiles that have a border with them,
     # with no content (they will be drawed with some default contents)
-    filteredTiles = {(tile.col, tile.row)
-                      : tile for l in tmptiles for tile in l}
 
-    return filteredTiles.values()
+    filtered_tiles = {(tile.col, tile.row): tile for l in tmptiles for tile in l}
+
+    return filtered_tiles.values()
 
 
 if __name__ == "__main__":
