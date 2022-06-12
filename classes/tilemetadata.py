@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import frontmatter
+import yaml
 
 
 class CardinalEnumMeta(EnumMeta):
@@ -98,9 +99,7 @@ class TileMetadata:
             filename (filepath): the relative or absolute path of the file to parse
 
         Returns:
-            (boolean, int, int, dict): First return indicates if it's a valid file,
-            second and third the x and y position in grid, and the last a bunch of
-            values extracted from the file
+            List[TileMetadata]: One or several TileMetadata described in the file
         """
         # The file must exists
         if not os.path.isfile(filename):
@@ -109,18 +108,35 @@ class TileMetadata:
 
         # The filename should follow the pattern XXYY-<some_name>.md
         basename = os.path.basename(filename)
-        match = re.match(r'^(-?\d{2})(-?\d{2})(?:-|_).*\.md$', basename)
-        if match is None:
-            raise ValueError(f'{basename} is not a valid basename.')
+        match_md = re.match(r'^(-?\d{2})(-?\d{2})(?:-|_).*\.md$', basename)
+        match_yaml = re.match(r'^.*\.(?:yaml|yml)$', basename)
 
-        col = int(match.group(2))
-        row = int(match.group(1))
-        content: Dict[str:Any] = {}
+        if match_md is not None:
+            col = int(match_md.group(2))
+            row = int(match_md.group(1))
+            content: Dict[str:Any] = {}
 
-        with open(filename, 'r', encoding="utf-8") as hex_file:
-            content = frontmatter.load(hex_file).metadata
+            with open(filename, 'r', encoding="utf-8") as hex_file:
+                content = frontmatter.load(hex_file).metadata
 
-        return TileMetadata(col, row, content)
+            return [TileMetadata(col, row, content)]
+        if match_yaml is not None:
+            result = []
+            with open(filename, 'r', encoding="utf-8") as hex_file:
+                for doc in yaml.load_all(hex_file, Loader=yaml.Loader):
+                    for (key, value) in doc.items():
+                        match_xy = re.match(r'^(-?\d{2})(-?\d{2})$', key)
+                        if match_xy is None:
+                            print(
+                                f'{key} in file {filename} is not a valid coordinate')
+                            continue
+                        col = int(match_xy.group(2))
+                        row = int(match_xy.group(1))
+                        result.append(TileMetadata(col, row, value))
+            return result
+
+        # No matching case
+        raise ValueError(f'{basename} is not a valid basename.')
 
     def __getitem__(self, key: str) -> Any:
         return self.content[key]

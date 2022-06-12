@@ -1,0 +1,6 @@
+
+# Careful: 0XXX in YAML spec is an octal number. To avoid confusion, we need to put XXYY coordinates between quotes.
+"0101": {"terrain": {"type": "grassland", "mixed":[{"type": "sea", "sides":["NO","SO","NE"]}]}, "roads": ["c SE"], "icon": "capitale"}
+"0202": {"terrain": {"type": "grassland", "mixed":[{"type": "sea", "sides":["N","NE","SE"]}]}, "roads": ["NO S"], "rivers": ["N SE"]}
+---
+"0302": {"terrain": {"type": "grassland", "mixed":[{"type": "sea", "sides":["N","NE","SE"]}]}, "roads": ["NO S"], "rivers": ["N SE"]}
