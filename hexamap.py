@@ -115,7 +115,8 @@ if __name__ == "__main__":
         for file in files:
             # pylint: disable=broad-except
             try:
-                metadatas.append(TileMetadata.from_file(file))
+                for tile in TileMetadata.from_file(file):
+                    metadatas.append(tile)
             except Exception as e:
                 logging.warning(e)
 
