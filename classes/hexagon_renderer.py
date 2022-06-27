@@ -19,9 +19,6 @@ with open('svg_templates/text.svg', 'r', encoding="utf-8") as cfile:
 with open('svg_templates/number.svg', 'r', encoding="utf-8") as cfile:
     number_t = Template(cfile.read())
 
-with open('svg_templates/polygon.svg', 'r', encoding="utf-8") as cfile:
-    polygon_t = Template(cfile.read())
-
 with open('svg_templates/icon.svg', 'r', encoding="utf-8") as cfile:
     icon_t = Template(cfile.read())
 
@@ -42,17 +39,42 @@ def points_to_polygon_coord(points: List[Point]) -> str:
         [f"{point.x},{point.y}" for point in points])
 
 
-def polygon_to_svg_coord(polygon: Polygon) -> str:
-    """Write polygon as svg polygon coordinate
-
-    Args:
-        polygon (Polygon): Polygon
+def draw_polygon(polygon: Polygon, cssClass: str):
+    """Draw a polygon from
 
     Returns:
-        str: List of coordinates ready to be inserted in svg polygon
+    string: svg code for a single hexagon
     """
-    return ' '.join(
-        [f"{point[0]},{point[1]}" for point in polygon.exterior.coords])
+    # TODO: check draw_icon for svg substitution
+    try:
+        doc = minidom.parseString(polygon.svg())
+        path_dom = doc.getElementsByTagName("path")[0]
+        # remove unexpected attribute
+        to_be_removed = [k for k in path_dom.attributes.keys() if k not in [
+            'd']]
+        [path_dom.removeAttribute(k) for k in to_be_removed]
+
+        path_dom.setAttribute("class", cssClass)
+
+        # svg_dom.removeAttribute('viewBox')
+        # view_box = svg_dom.getAttribute('viewBox')
+        # x_0, y_0, x_1, y_1 = [float(n)
+        #                       for n in view_box.split(' ')]
+        # max_box = max(x_1 - x_0, y_1 - y_0)
+
+        # scale = self.__radius2 / max_box / float(1.1)
+        # svg_dom.removeAttribute('viewBox')
+        # svg_dom.setAttribute("id", tile.icon)
+        # svg_dom.setAttribute("class", "icon " + tile.icon)
+        # origin = Point(scale * (x_1 - x_0) / 2,
+        #                scale * (y_1 - y_0) / 2)
+        # icon = Icon(tile.icon, origin, scale, svg_dom.toxml())
+        # self.icons_dict[tile.icon] = icon
+        return path_dom.toxml()
+    except:  # pylint: disable=bare-except
+        print("Warning: icon format not supported")
+        raise
+    return polygon.svg()
 
 
 class TileShape:
@@ -381,10 +403,9 @@ class HexagonRenderer:
         string: svg code for a single hexagon
         """
 
-        return polygon_t.substitute(
-            points=polygon_to_svg_coord(self.get_shape(tile)),
-            cssClass="grid"
-        )
+        return draw_polygon(polygon=self.get_shape(tile),
+                            cssClass="grid"
+                            )
 
     def draw_numbers(self, tile: TileMetadata) -> str:
         """draw the number of an hexagon
@@ -418,10 +439,9 @@ class HexagonRenderer:
             alt = tile.content.get('alt', None)
 
         # base terrain
-        base_terrain = polygon_t.substitute(
-            points=polygon_to_svg_coord(
-                self.get_shape(tile)),
-            cssClass=terrain_css
+        base_terrain = draw_polygon(
+            polygon=self.get_shape(tile),
+            cssClass=f"terrain {terrain_css}"
         )
 
         # mixed terrain
@@ -432,11 +452,9 @@ class HexagonRenderer:
                 'sides', []) if Cardinal.valid_zone(side)]
 
             for polygon in polygons:
-                point_str = polygon_to_svg_coord(polygon)
-                mixed_terrain += polygon_t.substitute(
-                    points=point_str,
-                    cssClass=type_css
-                )
+                mixed_terrain += draw_polygon(polygon=polygon,
+                                              cssClass=f"terrain {type_css}"
+                                              )
 
         # Text or icon
         center = self.get_path_points(tile)[Cardinal.C]

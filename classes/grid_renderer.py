@@ -8,14 +8,11 @@ from typing import Callable, List, Tuple
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
 
-from classes.hexagon_renderer import HexagonRenderer, polygon_to_svg_coord
+from classes.hexagon_renderer import HexagonRenderer, draw_polygon
 from classes.tilemetadata import TileMetadata
 
 with open('svg_templates/canvas.svg', 'r', encoding="utf-8") as cfile:
     canvas_t = Template(cfile.read())
-
-with open('svg_templates/polygon.svg', 'r', encoding="utf-8") as cfile:
-    polygon_t = Template(cfile.read())
 
 
 class Renderer:
@@ -102,10 +99,9 @@ class Renderer:
     def __draw_zones(self) -> str:
         declared_zones = {zone for tile in self.tiles.values()
                           for zone in tile.zones}
-        return "".join(sorted([polygon_t.substitute(
-            points=polygon_to_svg_coord(polygon),
-            cssClass=f"zone {z}") for z in declared_zones for polygon in
-            self.__make_cluster(lambda h, zone=z: zone in h.zones)]))
+        return "".join(sorted([draw_polygon(polygon=polygon,
+                                            cssClass=f"zone {z}") for z in declared_zones for polygon in
+                               self.__make_cluster(lambda h, zone=z: zone in h.zones)]))
 
     def __make_cluster(self, cluster_checker: Callable[[TileMetadata], bool]) -> List[Polygon]:
         """
