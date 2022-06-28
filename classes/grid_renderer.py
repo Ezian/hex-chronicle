@@ -51,8 +51,10 @@ class Renderer:
                 x_max = x_1
             if not y_max or y_1 > y_max:
                 y_max = y_1
-        return (x_min - self.strokewidth, y_min - self.strokewidth,
-                x_max - x_min + self.strokewidth*2, y_max - y_min + self.strokewidth * 2)
+        return (round(k) for k in (x_min - self.strokewidth,
+                                   y_min - self.strokewidth,
+                                   x_max - x_min + self.strokewidth*2,
+                                   y_max - y_min + self.strokewidth * 2))
 
     def draw_svg(self) -> str:
         """draw_svg
@@ -100,7 +102,8 @@ class Renderer:
         declared_zones = {zone for tile in self.tiles.values()
                           for zone in tile.zones}
         return "".join(sorted([draw_polygon(polygon=polygon,
-                                            cssClass=f"zone {z}") for z in declared_zones for polygon in
+                                            css_class=f"zone {z}")
+                               for z in declared_zones for polygon in
                                self.__make_cluster(lambda h, zone=z: zone in h.zones)]))
 
     def __make_cluster(self, cluster_checker: Callable[[TileMetadata], bool]) -> List[Polygon]:

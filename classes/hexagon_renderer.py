@@ -39,42 +39,41 @@ def points_to_polygon_coord(points: List[Point]) -> str:
         [f"{point.x},{point.y}" for point in points])
 
 
-def draw_polygon(polygon: Polygon, cssClass: str):
-    """Draw a polygon from
+def draw_polygon(polygon: Polygon, css_class: str):
+    """Draw a polygon from SVG returned by shapely
 
     Returns:
     string: svg code for a single hexagon
     """
-    # TODO: check draw_icon for svg substitution
     try:
         doc = minidom.parseString(polygon.svg())
         path_dom = doc.getElementsByTagName("path")[0]
         # remove unexpected attribute
         to_be_removed = [k for k in path_dom.attributes.keys() if k not in [
             'd']]
+
+        # pylint: disable=expression-not-assigned
         [path_dom.removeAttribute(k) for k in to_be_removed]
 
-        path_dom.setAttribute("class", cssClass)
+        path_dom.setAttribute("class", css_class)
 
-        # svg_dom.removeAttribute('viewBox')
-        # view_box = svg_dom.getAttribute('viewBox')
-        # x_0, y_0, x_1, y_1 = [float(n)
-        #                       for n in view_box.split(' ')]
-        # max_box = max(x_1 - x_0, y_1 - y_0)
-
-        # scale = self.__radius2 / max_box / float(1.1)
-        # svg_dom.removeAttribute('viewBox')
-        # svg_dom.setAttribute("id", tile.icon)
-        # svg_dom.setAttribute("class", "icon " + tile.icon)
-        # origin = Point(scale * (x_1 - x_0) / 2,
-        #                scale * (y_1 - y_0) / 2)
-        # icon = Icon(tile.icon, origin, scale, svg_dom.toxml())
-        # self.icons_dict[tile.icon] = icon
         return path_dom.toxml()
     except:  # pylint: disable=bare-except
-        print("Warning: icon format not supported")
-        raise
+        print("Warning: Unexpected svg from shapely")
     return polygon.svg()
+
+
+def fixed_precision_point(p_x: float, p_y: float) -> Point:
+    """
+    Round the coordinate and return a shapely.Point.
+
+    Returns:
+    string: A point with less precision...
+    """
+    # Yes I know, it is bad... But float precision is may break clustering.
+    # Since we can't have more precision in shapely, having less is preferable and do the same ^^
+    digits = 1
+    return Point(round(p_x, digits), round(p_y, digits))
 
 
 class TileShape:
@@ -88,9 +87,9 @@ class TileShape:
     def __init__(self, col: int, row: int, radius: float, radius2: float) -> None:
         self.radius = radius
         self.radius2 = radius2
-        self.center = Point(self.radius * 1.5 * col,
-                            self.radius2 *
-                            2 * row + col % 2 * self.radius2)
+        self.center = fixed_precision_point(self.radius * 1.5 * col,
+                                            self.radius2 *
+                                            2 * row + col % 2 * self.radius2)
 
         self.outer_points = self.__create_outer_points()
         self.inner_points = self.__create_inner_points()
@@ -131,37 +130,37 @@ class TileShape:
         radius = self.radius
         radius2 = self.radius2
         return {
-            Cardinal.E: Point(self.center.x + radius, self.center.y),
-            Cardinal.NE: Point(self.center.x + radius / 2, self.center.y - radius2),
-            Cardinal.NW: Point(self.center.x - radius / 2, self.center.y - radius2),
-            Cardinal.W: Point(self.center.x - radius, self.center.y),
-            Cardinal.SW: Point(self.center.x - radius / 2, self.center.y + radius2),
-            Cardinal.SE: Point(self.center.x + radius / 2, self.center.y + radius2),
+            Cardinal.E: fixed_precision_point(self.center.x + radius, self.center.y),
+            Cardinal.NE: fixed_precision_point(self.center.x + radius / 2, self.center.y - radius2),
+            Cardinal.NW: fixed_precision_point(self.center.x - radius / 2, self.center.y - radius2),
+            Cardinal.W: fixed_precision_point(self.center.x - radius, self.center.y),
+            Cardinal.SW: fixed_precision_point(self.center.x - radius / 2, self.center.y + radius2),
+            Cardinal.SE: fixed_precision_point(self.center.x + radius / 2, self.center.y + radius2),
         }
 
     def __create_inner_points(self) -> Dict[Cardinal, Point]:
         radius = self.radius * 0.6
         radius2 = self.radius2 * 0.6
         return {
-            Cardinal.E: Point(self.center.x + radius, self.center.y),
-            Cardinal.NE: Point(self.center.x + radius / 2, self.center.y - radius2),
-            Cardinal.NW: Point(self.center.x - radius / 2, self.center.y - radius2),
-            Cardinal.W: Point(self.center.x - radius, self.center.y),
-            Cardinal.SW: Point(self.center.x - radius / 2, self.center.y + radius2),
-            Cardinal.SE: Point(self.center.x + radius / 2, self.center.y + radius2),
+            Cardinal.E: fixed_precision_point(self.center.x + radius, self.center.y),
+            Cardinal.NE: fixed_precision_point(self.center.x + radius / 2, self.center.y - radius2),
+            Cardinal.NW: fixed_precision_point(self.center.x - radius / 2, self.center.y - radius2),
+            Cardinal.W: fixed_precision_point(self.center.x - radius, self.center.y),
+            Cardinal.SW: fixed_precision_point(self.center.x - radius / 2, self.center.y + radius2),
+            Cardinal.SE: fixed_precision_point(self.center.x + radius / 2, self.center.y + radius2),
         }
 
     def __create_path_points(self) -> Dict[Cardinal, Point]:
         radius2 = self.radius2
         cosx = radius2 * 0.8660  # cos(pi/6)
         coords = {
-            Cardinal.N: Point(self.center.x, self.center.y - radius2),
-            Cardinal.NW: Point(self.center.x - cosx, self.center.y - radius2 / 2),
-            Cardinal.NE: Point(self.center.x + cosx, self.center.y - radius2 / 2),
-            Cardinal.S: Point(self.center.x, self.center.y + radius2),
-            Cardinal.SW: Point(self.center.x - cosx, self.center.y + radius2 / 2),
-            Cardinal.SE: Point(self.center.x + cosx, self.center.y + radius2 / 2),
-            Cardinal.C: Point(self.center.x, self.center.y),
+            Cardinal.N: fixed_precision_point(self.center.x, self.center.y - radius2),
+            Cardinal.NW: fixed_precision_point(self.center.x - cosx, self.center.y - radius2 / 2),
+            Cardinal.NE: fixed_precision_point(self.center.x + cosx, self.center.y - radius2 / 2),
+            Cardinal.S: fixed_precision_point(self.center.x, self.center.y + radius2),
+            Cardinal.SW: fixed_precision_point(self.center.x - cosx, self.center.y + radius2 / 2),
+            Cardinal.SE: fixed_precision_point(self.center.x + cosx, self.center.y + radius2 / 2),
+            Cardinal.C: fixed_precision_point(self.center.x, self.center.y),
         }
         return coords
 
@@ -386,8 +385,8 @@ class HexagonRenderer:
                 svg_dom.removeAttribute('viewBox')
                 svg_dom.setAttribute("id", tile.icon)
                 svg_dom.setAttribute("class", "icon " + tile.icon)
-                origin = Point(scale * (x_1 - x_0) / 2,
-                               scale * (y_1 - y_0) / 2)
+                origin = fixed_precision_point(scale * (x_1 - x_0) / 2,
+                                               scale * (y_1 - y_0) / 2)
                 icon = Icon(tile.icon, origin, scale, svg_dom.toxml())
                 self.icons_dict[tile.icon] = icon
                 return icon.svg_def
@@ -404,7 +403,7 @@ class HexagonRenderer:
         """
 
         return draw_polygon(polygon=self.get_shape(tile),
-                            cssClass="grid"
+                            css_class="grid"
                             )
 
     def draw_numbers(self, tile: TileMetadata) -> str:
@@ -441,7 +440,7 @@ class HexagonRenderer:
         # base terrain
         base_terrain = draw_polygon(
             polygon=self.get_shape(tile),
-            cssClass=f"terrain {terrain_css}"
+            css_class=f"terrain {terrain_css}"
         )
 
         # mixed terrain
@@ -453,7 +452,7 @@ class HexagonRenderer:
 
             for polygon in polygons:
                 mixed_terrain += draw_polygon(polygon=polygon,
-                                              cssClass=f"terrain {type_css}"
+                                              css_class=f"terrain {type_css}"
                                               )
 
         # Text or icon
