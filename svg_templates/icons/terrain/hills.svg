@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 512 512"
+   style="height: 512px; width: 512px;"
+   version="1.1"
+   id="svg195"
+   sodipodi:docname="hills.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs199" />
+  <sodipodi:namedview
+     id="namedview197"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.9570312"
+     inkscape:cx="256"
+     inkscape:cy="256"
+     inkscape:window-width="3440"
+     inkscape:window-height="1377"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg195" />
+  <g
+     class=""
+     transform="translate(0,0)"
+     style="fill:#000000"
+     id="g193">
+    <path
+       d="m 128,137 c -42.657,0 -79.727,10.965 -110,25.322 v 128.002 c 30.184,-5.45 59.138,-8.394 86.82,-9.08 50.9,-1.26 97.525,5.05 139.744,17.12 42.768,-27.11 86.74,-52.815 134.387,-73.048 C 304.435,169.018 211.563,137 128,137 Z m 366,71.98 c -85.695,15.81 -157.66,53.443 -226.953,96.485 22.08,7.666 42.85,16.937 62.283,27.537 73.712,40.21 128.137,99.163 162.81,160.998 H 494 Z m -373.03,90.008 c -5.196,-0.034 -10.44,0.016 -15.738,0.15 -27.682,0.703 -56.767,3.78 -87.232,9.5 V 494 H 471.242 C 437.996,438.22 387.655,385.322 320.712,348.805 265.455,318.663 198.895,299.495 120.969,298.988 Z"
+       fill="#fff"
+       fill-opacity="1"
+       id="path191"
+       style="fill:#000000"
+       sodipodi:nodetypes="scccccscccccccccccccc" />
+  </g>
+</svg>

@@ -64,7 +64,7 @@ def add_border_tiles(tiles: List[TileMetadata]) -> List[TileMetadata]:
     """
 
     if len(tiles) == 0:
-        print("Warn: No tiles found")
+        logging.error("No tiles found")
         return [TileMetadata(0, 0)]
 
     tmptiles = [[
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         files = glob.glob(arg)
 
         if not files:
-            print('File does not exist: ' + arg, file=sys.stderr)
+            logging.warning('File does not exist: %s', arg, file=sys.stderr)
         for file in files:
             # pylint: disable=broad-except
             try:
