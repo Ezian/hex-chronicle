@@ -45,22 +45,18 @@ def draw_polygon(polygon: Polygon, css_class: str):
     Returns:
     string: svg code for a single hexagon
     """
-    try:
-        doc = minidom.parseString(polygon.svg())
-        path_dom = doc.getElementsByTagName("path")[0]
-        # remove unexpected attribute
-        to_be_removed = [k for k in path_dom.attributes.keys() if k not in [
-            'd']]
+    doc = minidom.parseString(polygon.svg())
+    path_dom = doc.getElementsByTagName("path")[0]
+    # remove unexpected attribute
+    to_be_removed = [k for k in path_dom.attributes.keys() if k not in [
+        'd']]
 
-        # pylint: disable=expression-not-assigned
-        [path_dom.removeAttribute(k) for k in to_be_removed]
+    # pylint: disable=expression-not-assigned
+    [path_dom.removeAttribute(k) for k in to_be_removed]
 
-        path_dom.setAttribute("class", css_class)
+    path_dom.setAttribute("class", css_class)
 
-        return path_dom.toxml()
-    except:  # pylint: disable=bare-except
-        print("Warning: Unexpected svg from shapely")
-    return polygon.svg()
+    return path_dom.toxml()
 
 
 def fixed_precision_point(p_x: float, p_y: float) -> Point:
@@ -68,7 +64,7 @@ def fixed_precision_point(p_x: float, p_y: float) -> Point:
     Round the coordinate and return a shapely.Point.
 
     Returns:
-    string: A point with less precision...
+    Point: A point with less precision...
     """
     # Yes I know, it is bad... But float precision is may break clustering.
     # Since we can't have more precision in shapely, having less is preferable and do the same ^^
