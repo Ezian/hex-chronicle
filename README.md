@@ -181,4 +181,6 @@ Each zone can be computed as a polygon of 4 points (2 of the inner hexagon, 2 of
 
 ## Thanks
  
- Thanks to <https://github.com/toonvandeputte/hexmaker> which give me the base of the algorithm even if it has been quite modified and upgraded. I would'nt have the motivation without this code.
+Thanks to <https://github.com/toonvandeputte/hexmaker> which give me the base of the algorithm even if it has been quite modified and upgraded. I would'nt have the motivation without this code.
+
+Thanks to <https://game-icons.net/>, which give me an excellent base for some icons.

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 512 512"
+   style="height: 512px; width: 512px;"
+   version="1.1"
+   id="svg359"
+   sodipodi:docname="mountains.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs363" />
+  <sodipodi:namedview
+     id="namedview361"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.9570312"
+     inkscape:cx="256"
+     inkscape:cy="256"
+     inkscape:window-width="3440"
+     inkscape:window-height="1377"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg359" />
+  <g
+     class=""
+     transform="translate(0,0)"
+     style="fill:#000000"
+     id="g357">
+    <path
+       d="M245.795 19.12l-52.363 153.513 26.67 61.937 38.884-52.37 53.217 67.493 11.682-40.486-78.09-190.086zM101.172 193.69l-29.06 80.222 24.54-12.715 24.803 14.33 11.64-48.013-31.923-33.825zm83.267 5.308l-20.776 60.904-15.27-16.177-14.662 60.48-37.568-21.707-33.44 17.324L19.04 420.42l84.884 30.937 73.418-22.437 73.935 19.47 71.66-21.536 91.973 25.226 77.28-31.66-48.44-89.006-39.045 26.664-38.892-27.576-27.153 42.79-15.78-10.013 39.032-61.51-26.6-64.752-15.246 52.83-60.634-76.9-43.664 58.81-31.33-72.76zm223.06 65.81L375.84 314.7l29.066 20.61 29.865-20.394-27.27-50.11z"
+       fill="#fff"
+       fill-opacity="1"
+       id="path355"
+       style="fill:#000000" />
+  </g>
+</svg>
