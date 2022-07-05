@@ -1,0 +1,61 @@
+"0701":
+    terrain:
+        type: grassland
+        mixed:
+            - type: hills
+              sides:
+                  - NW
+                  - "N"
+    alt: Fortin
+    icon: observatoire
+    roads:
+        - c NE
+"0702":
+    terrain:
+        type: grassland
+        mixed:
+            - type: sea
+              sides: [ 'NE', 'SE', 'N']
+    roads: ['SW S', 'SW NW']
+    zone: secured
+"0802":
+    terrain:
+        type: grassland
+        mixed:
+            - type: sea
+              sides: [ 'NE', 'SE', 'S']
+    roads: ['N SW']
+    zone: secured
+"0801":
+    terrain:
+        type: grassland
+        mixed:
+            - type: sea
+              sides: [ 'SW', 'SE', 'S']
+    roads: ['NE NW']
+    zone: secured
+"0800":
+    terrain:
+        type: grassland
+        mixed:
+            - type: sea
+              sides: [ 'SW', 'NW', 'S']
+    roads: ['SE N']
+    zone: secured
+"0700":
+    terrain:
+        type: hills
+        mixed:
+            - type: sea
+              sides: [ 'SW', 'NW', 'N']
+    roads: ['S NE']
+    zone: secured
+"0601":
+    terrain:
+        type: hills
+        mixed:
+            - type: sea
+              sides: [ 'NE', 'NW', 'N']
+    roads: ['SW SE']
+    zone: secured
+    

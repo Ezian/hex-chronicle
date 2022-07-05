@@ -1,11 +1,6 @@
 <svg viewBox="$viewBox" data-name="Layer 1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink">
     <style type="text/css">
-        polygon {
-            fill: none;
-            stroke-width: $strokegrid;
-        }
-
         text {
             font-size: $fontsize;
             font-family: PTSans-NarrowBold, PT Sans Narrow;
@@ -16,23 +11,25 @@
             stroke-width: $strokefont;
         }
 
+        .grid {
+            fill: none;
+            stroke-width: $strokegrid;
+            stroke: #8E8E8E;
+            stroke-miterlimit: 10;
+        }
+
         .path {
             fill: transparent;
             stroke-width: $strokepath;
         }
 
 
-        .roads {
+        .path.roads {
             stroke: saddlebrown;
         }
 
-        .rivers {
+        .path.rivers {
             stroke: blue;
-        }
-
-        .grid {
-            stroke: #8E8E8E;
-            stroke-miterlimit: 10;
         }
 
         .number {}
@@ -46,55 +43,61 @@
             stroke-width: 2;
         }
 
+        .terrain {
+            fill: none;
+            stroke-width: $strokegrid;
+        }
 
-        .plains {
+        .terrain.plains {
             fill: lightgreen;
         }
 
-        .light_wood {
+        .terrain.light_wood {
             fill: green;
         }
 
-        .heavy_woods {
+        .terrain.heavy_woods {
             fill: darkgreen;
         }
 
-        .grassland {
+        .terrain.grassland {
             fill: chartreuse;
         }
 
-        .mountains {
+        .terrain.mountains {
             fill: maroon;
         }
 
-        .hills {
+        .terrain.hills {
             fill: bisque;
         }
 
-        .sea {
+        .terrain.sea {
             fill: blue;
         }
 
 
-        .lake {
+        .terrain.lake {
             fill: lightskyblue;
         }
 
 
-        .marsh {
+        .terrain.marsh {
             fill: yellowgreen;
         }
 
 
-        .desert {
+        .terrain.desert {
             fill: lightyellow;
         }
 
-        .unknown {
+        .terrain.unknown {
             fill: gray;
         }
 
         .zone {
+            fill: none;
+            stroke-width: $strokegrid;
             stroke-dasharray: 15;
             stroke-linejoin: round;
             stroke-linecap: round;
