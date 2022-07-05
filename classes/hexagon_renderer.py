@@ -2,7 +2,7 @@
 
 Render a single hex
 """
-
+import logging
 import math
 from pathlib import Path
 from string import Template
@@ -357,14 +357,17 @@ class HexagonRenderer:
         Returns:
             str: a defs to insert in <defs></defs> in the svg file
         """
+        # pylint: disable=too-many-locals
         if not tile.icon:
             return ""
 
         icon_path = Path(
-            'svg_templates/icons/building').joinpath(tile.icon + ".svg")
+            'svg_templates/icons').joinpath(tile.icon + ".svg")
         if not icon_path.is_file():
-            print(
-                f"{tile.icon} is not a valid icon (icon path '{icon_path}' isn't a file)")
+            # Don't print an error message for missing terrain icon. It's usually normal.
+            if not tile.icon.startswith("terrain"):
+                logging.warning(
+                    "%s is not a valid icon (icon path '%s' isn't a file)", tile.icon, icon_path)
             return ""
 
         # extract inner svg
@@ -380,14 +383,16 @@ class HexagonRenderer:
                 scale = self.__radius2 / max_box / float(1.1)
                 svg_dom.removeAttribute('viewBox')
                 svg_dom.setAttribute("id", tile.icon)
-                svg_dom.setAttribute("class", "icon " + tile.icon)
+                svg_dom.setAttribute("class", " ".join(
+                    ["icon"] + tile.icon.split("/")))
                 origin = fixed_precision_point(scale * (x_1 - x_0) / 2,
                                                scale * (y_1 - y_0) / 2)
                 icon = Icon(tile.icon, origin, scale, svg_dom.toxml())
                 self.icons_dict[tile.icon] = icon
                 return icon.svg_def
-            except:  # pylint: disable=bare-except
-                print("Warning: icon format not supported")
+            except Exception as exception:  # pylint: disable=broad-except
+                logging.warning("icon format not supported (error=%s)",
+                                exception, exc_info=True)
 
         return ""
 
@@ -455,11 +460,9 @@ class HexagonRenderer:
         center = self.get_path_points(tile)[Cardinal.C]
         text = ''
         if tile.icon:
-            the_icon = self.icons_dict[tile.icon]
+            the_icon = self.icons_dict.get(tile.icon, None)
             if the_icon:
                 text = the_icon.draw(center)
-            else:
-                print(f"Warning: Unknown icon {tile.icon}")
 
         if len(text) == 0 and alt:
             text = text_t.substitute(
@@ -490,7 +493,9 @@ class HexagonRenderer:
                                             bx=first.x, by=first.y,
                                             ex=last.x, ey=last.y,
                                             cx=center.x, cy=center.y)
-            except:  # pylint: disable=bare-except
-                print("Warning: fail compute " + str(type) + " '" + path + "'")
+            except Exception as exception:   # pylint: disable=broad-except
+                logging.warning(
+                    "Warning: fail compute %s '%s' (error=%s)",
+                    str(type), path, exception, exc_info=True)
 
         return result
