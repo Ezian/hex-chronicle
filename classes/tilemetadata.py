@@ -3,6 +3,7 @@
 Define Metadata and useful types to work with tiles
 """
 import errno
+import logging
 import os
 import re
 from enum import Enum, EnumMeta, auto
@@ -88,8 +89,23 @@ class TileMetadata:
         self.zones = self.content.get('zone', []) if isinstance(
             self.content.get('zone', []), List) else [
             self.content.get('zone', [])]
-        self.icon = self.content.get(
+
+        # Icon from Building
+        icon_path = self.content.get(
             'icon', None)
+        if icon_path:
+            self.icon = 'building/' + icon_path
+
+        # icon from Terrain
+        if not icon_path:
+            center_tile = [terrain for terrain in self.content.get("terrain", {}).get(
+                "mixed", []) if 'C' in terrain.get("sides", [])]
+            if not center_tile:
+                icon_path = self.content.get("terrain", {}).get("type", None)
+            else:
+                icon_path = center_tile[0].get("type", None)
+            if icon_path:
+                self.icon = 'terrain/' + icon_path
 
     @staticmethod
     def from_file(filename: Path):
@@ -127,8 +143,8 @@ class TileMetadata:
                     for (key, value) in doc.items():
                         match_xy = re.match(r'^(-?\d{2})(-?\d{2})$', key)
                         if match_xy is None:
-                            print(
-                                f'{key} in file {filename} is not a valid coordinate')
+                            logging.warning(
+                                '%s in file %s is not a valid coordinate', key, filename)
                             continue
                         col = int(match_xy.group(2))
                         row = int(match_xy.group(1))
