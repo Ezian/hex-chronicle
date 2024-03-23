@@ -19,13 +19,16 @@ An hex-map generator for exploration sand-box RPG
 
 ## Python version
 
-Python 3.8.10
+Supported (tested) version:
+- Python 3.8.10
+- Python 3.12
 
 ## Requirements
 
+See [requirements.txt](requirements.txt)
+
 ```sh
-pip install python-frontmatter
-pip install shapely
+pip install -r requirements.txt
 ```
 
 ## Example of the generated map
